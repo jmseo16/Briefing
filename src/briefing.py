@@ -57,21 +57,11 @@ def fetch_stock(ticker: str) -> dict:
         else None
     )
 
-    target_price = info.get("targetMeanPrice")
-    upside = (
-        (target_price - current_price) / current_price * 100
-        if target_price and current_price
-        else None
-    )
-
     return {
         "ticker": ticker,
         "name": info.get("shortName") or info.get("longName") or ticker,
         "current_price": current_price,
-        "prev_close": prev_close,
         "change_pct": change_pct,
-        "target_price": target_price,
-        "upside": upside,
         "forward_pe": info.get("forwardPE"),
         "peg_ratio": info.get("pegRatio"),
         "rsi": calculate_rsi(hist["Close"]) if not hist.empty else None,
@@ -104,20 +94,19 @@ def _rsi_emoji(v) -> str:
 def _table_rows_html(stocks: list, names: dict) -> str:
     rows = ""
     for s in stocks:
-        display_name = names.get(s["ticker"], s["name"])[:20]
+        display_name = names.get(s["ticker"], s["name"])[:16]
         ch_color = "#16a34a" if s["change_pct"] and s["change_pct"] >= 0 else "#dc2626"
-        up_color = "#16a34a" if s["upside"] and s["upside"] >= 0 else "#dc2626"
         rows += (
             f"<tr style='border-bottom:1px solid #f1f5f9;'>"
-            f"<td style='padding:9px 12px;white-space:nowrap;'>{display_name}</td>"
-            f"<td style='padding:9px 12px;font-family:monospace;font-weight:700;'>{s['ticker']}</td>"
-            f"<td style='padding:9px 12px;text-align:right;font-family:monospace;'>{_fmt(s['current_price'], prefix='$')}</td>"
-            f"<td style='padding:9px 12px;text-align:right;color:{ch_color};'>{_change_emoji(s['change_pct'])} {_fmt(s['change_pct'], suffix='%')}</td>"
-            f"<td style='padding:9px 12px;text-align:right;font-family:monospace;'>{_fmt(s['target_price'], prefix='$')}</td>"
-            f"<td style='padding:9px 12px;text-align:right;color:{up_color};'>{_change_emoji(s['upside'])} {_fmt(s['upside'], suffix='%')}</td>"
-            f"<td style='padding:9px 12px;text-align:right;'>{_fmt(s['forward_pe'], 1)}</td>"
-            f"<td style='padding:9px 12px;text-align:right;'>{_fmt(s['peg_ratio'], 2)}</td>"
-            f"<td style='padding:9px 12px;text-align:right;'>{_rsi_emoji(s['rsi'])} {_fmt(s['rsi'], 1)}</td>"
+            f"<td style='padding:6px 8px;white-space:nowrap;font-size:12px;'>"
+            f"<div style='font-weight:600;'>{display_name}</div>"
+            f"<div style='font-size:10px;color:#94a3b8;'>{s['ticker']}</div>"
+            f"</td>"
+            f"<td style='padding:6px 8px;text-align:right;font-family:monospace;font-size:12px;'>{_fmt(s['current_price'], prefix='$')}</td>"
+            f"<td style='padding:6px 8px;text-align:right;color:{ch_color};font-size:12px;'>{_change_emoji(s['change_pct'])} {_fmt(s['change_pct'], suffix='%')}</td>"
+            f"<td style='padding:6px 8px;text-align:right;font-size:12px;'>{_fmt(s['forward_pe'], 1)}</td>"
+            f"<td style='padding:6px 8px;text-align:right;font-size:12px;'>{_fmt(s['peg_ratio'], 2)}</td>"
+            f"<td style='padding:6px 8px;text-align:right;font-size:12px;'>{_rsi_emoji(s['rsi'])} {_fmt(s['rsi'], 1)}</td>"
             f"</tr>"
         )
     return rows
@@ -144,14 +133,6 @@ def _todays_points_html(stocks: list) -> str:
         label = ", ".join(f"{s['ticker']}(PEG {s['peg_ratio']:.2f})" for s in peg_picks[:4])
         items.append(f"💎 PEG 저평가 종목: {label}")
 
-    with_upside = [s for s in stocks if s["upside"] is not None]
-    if with_upside:
-        top = max(with_upside, key=lambda x: x["upside"])
-        bot = min(with_upside, key=lambda x: x["upside"])
-        items.append(f"🚀 최대 업사이드: {top['ticker']} ({top['upside']:+.1f}%)")
-        if bot["upside"] < 0:
-            items.append(f"⚠️ 최대 다운사이드: {bot['ticker']} ({bot['upside']:+.1f}%)")
-
     if not items:
         return "<li>포인트 없음</li>"
     return "".join(f'<li style="padding:4px 0;">{item}</li>' for item in items)
@@ -159,44 +140,47 @@ def _todays_points_html(stocks: list) -> str:
 
 def build_email_html(stocks: list, names: dict, date_str: str) -> str:
     all_ok = all(s["cross_ok"] for s in stocks)
-    cross_badge = "✅ 3중 크로스체크 완료" if all_ok else "⚠️ 일부 데이터 불일치 확인 필요"
+    cross_badge = "✅ 3중 크로스체크 완료" if all_ok else "⚠️ 일부 데이터 불일치"
     cross_color = "#4ade80" if all_ok else "#fbbf24"
 
     return f"""<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:16px;background:#f1f5f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;color:#1e293b;">
-  <div style="max-width:860px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.1);">
-    <div style="background:#0f172a;padding:20px 28px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+<body style="margin:0;padding:12px;background:#f1f5f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#1e293b;">
+  <div style="max-width:520px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.1);">
+
+    <div style="background:#0f172a;padding:16px 20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
       <div>
         <div style="color:#94a3b8;font-size:10px;letter-spacing:.1em;text-transform:uppercase;">Daily Stock Briefing</div>
-        <div style="color:#fff;font-size:18px;font-weight:700;margin-top:2px;">{date_str}</div>
+        <div style="color:#fff;font-size:16px;font-weight:700;margin-top:2px;">{date_str}</div>
       </div>
-      <div style="color:{cross_color};font-size:12px;font-weight:600;">{cross_badge}</div>
+      <div style="color:{cross_color};font-size:11px;font-weight:600;">{cross_badge}</div>
     </div>
+
     <div style="overflow-x:auto;">
-      <table style="width:100%;border-collapse:collapse;min-width:700px;">
+      <table style="width:100%;border-collapse:collapse;min-width:320px;">
         <thead>
           <tr style="background:#f8fafc;border-bottom:2px solid #e2e8f0;">
-            <th style="padding:9px 12px;text-align:left;font-size:11px;color:#64748b;font-weight:600;white-space:nowrap;">종목</th>
-            <th style="padding:9px 12px;text-align:left;font-size:11px;color:#64748b;font-weight:600;">티커</th>
-            <th style="padding:9px 12px;text-align:right;font-size:11px;color:#64748b;font-weight:600;">현재가</th>
-            <th style="padding:9px 12px;text-align:right;font-size:11px;color:#64748b;font-weight:600;">등락률</th>
-            <th style="padding:9px 12px;text-align:right;font-size:11px;color:#64748b;font-weight:600;">컨센서스</th>
-            <th style="padding:9px 12px;text-align:right;font-size:11px;color:#64748b;font-weight:600;">괴리율</th>
-            <th style="padding:9px 12px;text-align:right;font-size:11px;color:#64748b;font-weight:600;">Fwd PER</th>
-            <th style="padding:9px 12px;text-align:right;font-size:11px;color:#64748b;font-weight:600;">PEG(1Y)</th>
-            <th style="padding:9px 12px;text-align:right;font-size:11px;color:#64748b;font-weight:600;">RSI(14)</th>
+            <th style="padding:6px 8px;text-align:left;font-size:10px;color:#64748b;font-weight:600;">종목</th>
+            <th style="padding:6px 8px;text-align:right;font-size:10px;color:#64748b;font-weight:600;">현재가</th>
+            <th style="padding:6px 8px;text-align:right;font-size:10px;color:#64748b;font-weight:600;">등락률</th>
+            <th style="padding:6px 8px;text-align:right;font-size:10px;color:#64748b;font-weight:600;">Fwd PER</th>
+            <th style="padding:6px 8px;text-align:right;font-size:10px;color:#64748b;font-weight:600;">PEG</th>
+            <th style="padding:6px 8px;text-align:right;font-size:10px;color:#64748b;font-weight:600;">RSI</th>
           </tr>
         </thead>
-        <tbody>{_table_rows_html(stocks, names)}</tbody>
+        <tbody>
+          {_table_rows_html(stocks, names)}
+        </tbody>
       </table>
     </div>
-    <div style="padding:20px 28px;border-top:1px solid #e2e8f0;">
-      <div style="font-size:14px;font-weight:700;margin-bottom:10px;">💡 오늘의 포인트</div>
-      <ul style="margin:0;padding-left:20px;line-height:1.9;color:#374151;">{_todays_points_html(stocks)}</ul>
+
+    <div style="padding:16px 20px;border-top:1px solid #e2e8f0;">
+      <div style="font-size:13px;font-weight:700;margin-bottom:8px;">💡 오늘의 포인트</div>
+      <ul style="margin:0;padding-left:18px;line-height:1.9;color:#374151;font-size:13px;">{_todays_points_html(stocks)}</ul>
     </div>
-    <div style="background:#f8fafc;padding:12px 28px;border-top:1px solid #e2e8f0;text-align:center;font-size:11px;color:#94a3b8;">
+
+    <div style="background:#f8fafc;padding:10px 20px;border-top:1px solid #e2e8f0;text-align:center;font-size:10px;color:#94a3b8;">
       본 브리핑은 투자 조언이 아닙니다 · {date_str}
     </div>
   </div>
@@ -229,9 +213,9 @@ def main():
     }
     date_str = f"{now.strftime('%Y년 %m월 %d일')} ({day_ko.get(now.strftime('%A'), '')})"
 
-    print(f"\n{'='*60}")
+    print(f"\n{'='*55}")
     print(f" 📊 Daily Stock Briefing  {date_str}")
-    print(f"{'='*60}")
+    print(f"{'='*55}")
     print(f" 수집 종목: {len(watchlist)}개\n")
 
     stocks = []
