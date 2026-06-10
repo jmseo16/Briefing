@@ -18,6 +18,9 @@ sectors:
     - DELL
     - NOK
     - VRT
+    - PWR
+    - ETN
+    - FIX
   사이버보안:
     - CRWD
   헬스케어:
@@ -39,3 +42,6 @@ names:
   MTSI: MACOM Tech
   MPWR: 모놀리틱 파워
   UNH: 유나이티드헬스
+  PWR: 퀀타서비시스
+  ETN: 이튼
+  FIX: 컴포트 시스템스
