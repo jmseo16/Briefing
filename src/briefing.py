@@ -97,7 +97,7 @@ def _rsi_emoji(v) -> str:
 
 SECTOR_ICONS = {
     "반도체": "🔵",
-    "반도체/광학": "🟣",
+    "광학/전력": "🟣",
     "온프레미스 AI": "🟠",
     "사이버보안": "🔴",
     "헬스케어": "🟢",
@@ -178,7 +178,6 @@ def build_email_html(sectors: dict, stock_map: dict, names: dict, date_str: str)
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="margin:0;padding:12px;background:#f1f5f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#1e293b;">
   <div style="max-width:520px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.1);">
-
     <div style="background:#0f172a;padding:16px 20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
       <div>
         <div style="color:#94a3b8;font-size:10px;letter-spacing:.1em;text-transform:uppercase;">Daily Stock Briefing</div>
@@ -186,14 +185,11 @@ def build_email_html(sectors: dict, stock_map: dict, names: dict, date_str: str)
       </div>
       <div style="color:{cross_color};font-size:11px;font-weight:600;">{cross_badge}</div>
     </div>
-
     {sector_blocks}
-
     <div style="padding:14px 20px;border-top:1px solid #e2e8f0;">
       <div style="font-size:13px;font-weight:700;margin-bottom:8px;">💡 오늘의 포인트</div>
       <ul style="margin:0;padding-left:18px;line-height:1.9;color:#374151;font-size:13px;">{_todays_points_html(all_stocks)}</ul>
     </div>
-
     <div style="background:#f8fafc;padding:10px 20px;border-top:1px solid #e2e8f0;text-align:center;font-size:10px;color:#94a3b8;">
       본 브리핑은 투자 조언이 아닙니다 · {date_str}
     </div>
