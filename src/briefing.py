@@ -2,6 +2,7 @@
 """Daily morning stock briefing — fetches data, cross-checks, and emails a table report."""
 
 import os
+import sys
 import yaml
 import smtplib
 from email.mime.multipart import MIMEMultipart
@@ -16,6 +17,14 @@ import pandas as pd
 def load_config(path: str = "config/stocks.yaml") -> dict:
     with open(path) as f:
         return yaml.safe_load(f)
+
+
+def is_within_market_close_window() -> bool:
+    """NYSE closes at 4:00 PM ET. Return True only within 60 min of close."""
+    et = pytz.timezone("America/New_York")
+    now_et = datetime.now(et)
+    minutes_since_close = (now_et.hour - 16) * 60 + now_et.minute
+    return 0 <= minutes_since_close <= 60
 
 
 def calculate_rsi(closes: pd.Series, period: int = 14):
@@ -148,7 +157,6 @@ def build_email_html(stocks: list, names: dict, date_str: str) -> str:
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="margin:0;padding:12px;background:#f1f5f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#1e293b;">
   <div style="max-width:520px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.1);">
-
     <div style="background:#0f172a;padding:16px 20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
       <div>
         <div style="color:#94a3b8;font-size:10px;letter-spacing:.1em;text-transform:uppercase;">Daily Stock Briefing</div>
@@ -156,7 +164,6 @@ def build_email_html(stocks: list, names: dict, date_str: str) -> str:
       </div>
       <div style="color:{cross_color};font-size:11px;font-weight:600;">{cross_badge}</div>
     </div>
-
     <div style="overflow-x:auto;">
       <table style="width:100%;border-collapse:collapse;min-width:320px;">
         <thead>
@@ -169,17 +176,13 @@ def build_email_html(stocks: list, names: dict, date_str: str) -> str:
             <th style="padding:6px 8px;text-align:right;font-size:10px;color:#64748b;font-weight:600;">RSI</th>
           </tr>
         </thead>
-        <tbody>
-          {_table_rows_html(stocks, names)}
-        </tbody>
+        <tbody>{_table_rows_html(stocks, names)}</tbody>
       </table>
     </div>
-
     <div style="padding:16px 20px;border-top:1px solid #e2e8f0;">
       <div style="font-size:13px;font-weight:700;margin-bottom:8px;">💡 오늘의 포인트</div>
       <ul style="margin:0;padding-left:18px;line-height:1.9;color:#374151;font-size:13px;">{_todays_points_html(stocks)}</ul>
     </div>
-
     <div style="background:#f8fafc;padding:10px 20px;border-top:1px solid #e2e8f0;text-align:center;font-size:10px;color:#94a3b8;">
       본 브리핑은 투자 조언이 아닙니다 · {date_str}
     </div>
@@ -200,6 +203,14 @@ def send_email(subject: str, html: str, recipient: str, sender: str, password: s
 
 
 def main():
+    # workflow_dispatch(수동 실행)은 항상 통과, 스케줄 실행은 마감 후 60분 이내만 허용
+    is_manual = os.environ.get("GITHUB_EVENT_NAME") == "workflow_dispatch"
+    if not is_manual and not is_within_market_close_window():
+        et = pytz.timezone("America/New_York")
+        now_et = datetime.now(et)
+        print(f" 시장 마감 시간이 아닙니다 (ET {now_et.strftime('%H:%M')}). 발송 건너맜.")
+        sys.exit(0)
+
     config_path = os.environ.get("CONFIG_PATH", "config/stocks.yaml")
     config = load_config(config_path)
     watchlist = config["watchlist"]

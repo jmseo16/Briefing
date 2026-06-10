@@ -2,7 +2,8 @@ name: Daily Stock Briefing
 
 on:
   schedule:
-    - cron: '30 22 * * 1-5'
+    - cron: '5 20 * * 1-5'  # EDT (서머타임): 4:05 PM ET = 05:05 KST
+    - cron: '5 21 * * 1-5'  # EST (표준시):   4:05 PM ET = 06:05 KST
   workflow_dispatch:
 
 jobs:
