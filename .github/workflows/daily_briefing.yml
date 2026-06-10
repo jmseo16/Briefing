@@ -4,7 +4,7 @@ on:
   schedule:
     # 22:30 UTC = 다음날 07:30 KST  (미국 시장 마감 후 1.5시간)
     - cron: '30 22 * * 1-5'
-  workflow_dispatch:  # 수동 실행 허용
+  workflow_dispatch:
 
 jobs:
   briefing:

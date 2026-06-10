@@ -2,7 +2,6 @@
 """Daily morning stock briefing — fetches data, cross-checks, and emails a table report."""
 
 import os
-import sys
 import yaml
 import smtplib
 from email.mime.multipart import MIMEMultipart
@@ -14,16 +13,12 @@ import yfinance as yf
 import pandas as pd
 
 
-# ── Config ────────────────────────────────────────────────────────────────────
-
 def load_config(path: str = "config/stocks.yaml") -> dict:
     with open(path) as f:
         return yaml.safe_load(f)
 
 
-# ── Data fetching ─────────────────────────────────────────────────────────────
-
-def calculate_rsi(closes: pd.Series, period: int = 14) -> float | None:
+def calculate_rsi(closes: pd.Series, period: int = 14):
     if len(closes) < period + 1:
         return None
     delta = closes.diff()
@@ -42,7 +37,6 @@ def fetch_stock(ticker: str) -> dict:
     fast = t.fast_info
     hist = t.history(period="3mo")
 
-    # ── 3-source price cross-check
     price_info = info.get("currentPrice") or info.get("regularMarketPrice")
     price_fast = float(fast.last_price) if fast.last_price else None
     price_hist = float(hist["Close"].iloc[-1]) if not hist.empty else None
@@ -82,13 +76,8 @@ def fetch_stock(ticker: str) -> dict:
         "peg_ratio": info.get("pegRatio"),
         "rsi": calculate_rsi(hist["Close"]) if not hist.empty else None,
         "cross_ok": cross_ok,
-        "price_info": price_info,
-        "price_fast": price_fast,
-        "price_hist": price_hist,
     }
 
-
-# ── Formatting helpers ────────────────────────────────────────────────────────
 
 def _fmt(val, decimals=2, prefix="", suffix="") -> str:
     if val is None:
@@ -112,57 +101,49 @@ def _rsi_emoji(v) -> str:
     return "⚪"
 
 
-# ── HTML email ────────────────────────────────────────────────────────────────
-
 def _table_rows_html(stocks: list, names: dict) -> str:
     rows = ""
     for s in stocks:
         display_name = names.get(s["ticker"], s["name"])[:20]
         ch_color = "#16a34a" if s["change_pct"] and s["change_pct"] >= 0 else "#dc2626"
         up_color = "#16a34a" if s["upside"] and s["upside"] >= 0 else "#dc2626"
-
-        rows += f"""
-        <tr style="border-bottom:1px solid #f1f5f9;">
-          <td style="padding:9px 12px;white-space:nowrap;">{display_name}</td>
-          <td style="padding:9px 12px;font-family:monospace;font-weight:700;">{s['ticker']}</td>
-          <td style="padding:9px 12px;text-align:right;font-family:monospace;">{_fmt(s['current_price'], prefix='$')}</td>
-          <td style="padding:9px 12px;text-align:right;color:{ch_color};">{_change_emoji(s['change_pct'])} {_fmt(s['change_pct'], suffix='%')}</td>
-          <td style="padding:9px 12px;text-align:right;font-family:monospace;">{_fmt(s['target_price'], prefix='$')}</td>
-          <td style="padding:9px 12px;text-align:right;color:{up_color};">{_change_emoji(s['upside'])} {_fmt(s['upside'], suffix='%')}</td>
-          <td style="padding:9px 12px;text-align:right;">{_fmt(s['forward_pe'], 1)}</td>
-          <td style="padding:9px 12px;text-align:right;">{_fmt(s['peg_ratio'], 2)}</td>
-          <td style="padding:9px 12px;text-align:right;">{_rsi_emoji(s['rsi'])} {_fmt(s['rsi'], 1)}</td>
-        </tr>"""
+        rows += (
+            f"<tr style='border-bottom:1px solid #f1f5f9;'>"
+            f"<td style='padding:9px 12px;white-space:nowrap;'>{display_name}</td>"
+            f"<td style='padding:9px 12px;font-family:monospace;font-weight:700;'>{s['ticker']}</td>"
+            f"<td style='padding:9px 12px;text-align:right;font-family:monospace;'>{_fmt(s['current_price'], prefix='$')}</td>"
+            f"<td style='padding:9px 12px;text-align:right;color:{ch_color};'>{_change_emoji(s['change_pct'])} {_fmt(s['change_pct'], suffix='%')}</td>"
+            f"<td style='padding:9px 12px;text-align:right;font-family:monospace;'>{_fmt(s['target_price'], prefix='$')}</td>"
+            f"<td style='padding:9px 12px;text-align:right;color:{up_color};'>{_change_emoji(s['upside'])} {_fmt(s['upside'], suffix='%')}</td>"
+            f"<td style='padding:9px 12px;text-align:right;'>{_fmt(s['forward_pe'], 1)}</td>"
+            f"<td style='padding:9px 12px;text-align:right;'>{_fmt(s['peg_ratio'], 2)}</td>"
+            f"<td style='padding:9px 12px;text-align:right;'>{_rsi_emoji(s['rsi'])} {_fmt(s['rsi'], 1)}</td>"
+            f"</tr>"
+        )
     return rows
 
 
 def _todays_points_html(stocks: list) -> str:
     items = []
 
-    # RSI signal (≤40)
     rsi_picks = sorted(
         [s for s in stocks if s["rsi"] is not None and s["rsi"] <= 40],
         key=lambda x: x["rsi"],
     )
     if rsi_picks:
         label = ", ".join(
-            f"{s['ticker']}({_rsi_emoji(s['rsi'])} {s['rsi']:.0f})"
-            for s in rsi_picks[:4]
+            f"{s['ticker']}({_rsi_emoji(s['rsi'])} {s['rsi']:.0f})" for s in rsi_picks[:4]
         )
         items.append(f"📉 RSI 관심 신호: {label}")
 
-    # PEG < 1.0
     peg_picks = sorted(
         [s for s in stocks if s["peg_ratio"] is not None and 0 < s["peg_ratio"] < 1.0],
         key=lambda x: x["peg_ratio"],
     )
     if peg_picks:
-        label = ", ".join(
-            f"{s['ticker']}(PEG {s['peg_ratio']:.2f})" for s in peg_picks[:4]
-        )
+        label = ", ".join(f"{s['ticker']}(PEG {s['peg_ratio']:.2f})" for s in peg_picks[:4])
         items.append(f"💎 PEG 저평가 종목: {label}")
 
-    # Max upside / downside
     with_upside = [s for s in stocks if s["upside"] is not None]
     if with_upside:
         top = max(with_upside, key=lambda x: x["upside"])
@@ -183,14 +164,9 @@ def build_email_html(stocks: list, names: dict, date_str: str) -> str:
 
     return f"""<!DOCTYPE html>
 <html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-</head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="margin:0;padding:16px;background:#f1f5f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;color:#1e293b;">
   <div style="max-width:860px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.1);">
-
-    <!-- Header -->
     <div style="background:#0f172a;padding:20px 28px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
       <div>
         <div style="color:#94a3b8;font-size:10px;letter-spacing:.1em;text-transform:uppercase;">Daily Stock Briefing</div>
@@ -198,8 +174,6 @@ def build_email_html(stocks: list, names: dict, date_str: str) -> str:
       </div>
       <div style="color:{cross_color};font-size:12px;font-weight:600;">{cross_badge}</div>
     </div>
-
-    <!-- Table -->
     <div style="overflow-x:auto;">
       <table style="width:100%;border-collapse:collapse;min-width:700px;">
         <thead>
@@ -215,31 +189,20 @@ def build_email_html(stocks: list, names: dict, date_str: str) -> str:
             <th style="padding:9px 12px;text-align:right;font-size:11px;color:#64748b;font-weight:600;">RSI(14)</th>
           </tr>
         </thead>
-        <tbody>
-          {_table_rows_html(stocks, names)}
-        </tbody>
+        <tbody>{_table_rows_html(stocks, names)}</tbody>
       </table>
     </div>
-
-    <!-- Today's points -->
     <div style="padding:20px 28px;border-top:1px solid #e2e8f0;">
       <div style="font-size:14px;font-weight:700;margin-bottom:10px;">💡 오늘의 포인트</div>
-      <ul style="margin:0;padding-left:20px;line-height:1.9;color:#374151;">
-        {_todays_points_html(stocks)}
-      </ul>
+      <ul style="margin:0;padding-left:20px;line-height:1.9;color:#374151;">{_todays_points_html(stocks)}</ul>
     </div>
-
-    <!-- Footer -->
     <div style="background:#f8fafc;padding:12px 28px;border-top:1px solid #e2e8f0;text-align:center;font-size:11px;color:#94a3b8;">
       본 브리핑은 투자 조언이 아닙니다 · {date_str}
     </div>
-
   </div>
 </body>
 </html>"""
 
-
-# ── Email sending ─────────────────────────────────────────────────────────────
 
 def send_email(subject: str, html: str, recipient: str, sender: str, password: str):
     msg = MIMEMultipart("alternative")
@@ -252,13 +215,11 @@ def send_email(subject: str, html: str, recipient: str, sender: str, password: s
         srv.sendmail(sender, [recipient], msg.as_string())
 
 
-# ── Main ──────────────────────────────────────────────────────────────────────
-
 def main():
     config_path = os.environ.get("CONFIG_PATH", "config/stocks.yaml")
     config = load_config(config_path)
-    watchlist: list[str] = config["watchlist"]
-    names: dict = config.get("names", {})
+    watchlist = config["watchlist"]
+    names = config.get("names", {})
 
     kst = pytz.timezone("Asia/Seoul")
     now = datetime.now(kst)
@@ -273,20 +234,17 @@ def main():
     print(f"{'='*60}")
     print(f" 수집 종목: {len(watchlist)}개\n")
 
-    stocks: list[dict] = []
-    failed: list[str] = []
+    stocks = []
+    failed = []
     for ticker in watchlist:
         try:
             data = fetch_stock(ticker)
             stocks.append(data)
             status = "✅" if data["cross_ok"] else "⚠️"
             rsi_str = f"RSI={data['rsi']:.0f}" if data["rsi"] else "RSI=N/A"
-            print(
-                f"  {status} {ticker:<6}  ${data['current_price'] or 0:.2f}"
-                f"  ({data['change_pct']:+.2f}%)" if data["change_pct"] else
-                f"  {status} {ticker:<6}  N/A"
-                f"  {rsi_str}"
-            )
+            price_str = f"${data['current_price']:.2f}" if data["current_price"] else "N/A"
+            chg_str = f"({data['change_pct']:+.2f}%)" if data["change_pct"] else ""
+            print(f"  {status} {ticker:<6}  {price_str}  {chg_str}  {rsi_str}")
         except Exception as exc:
             failed.append(ticker)
             print(f"  ❌ {ticker:<6}  오류: {exc}")
