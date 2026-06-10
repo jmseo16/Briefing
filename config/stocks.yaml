@@ -1,0 +1,37 @@
+# 관심 종목 리스트
+# 추가: watchlist에 티커 추가 후 names에 한국어 이름 추가
+# 삭제: watchlist에서 티커 제거
+
+watchlist:
+  - QCOM
+  - MRVL
+  - GLW
+  - NOK
+  - DELL
+  - CRWD
+  - ARM
+  - GFS
+  - AVGO
+  - VRT
+  - AMD
+  - INTC
+  - MTSI
+  - MPWR
+  - UNH
+
+names:
+  QCOM: 퀄컴
+  MRVL: 마벨 테크놀로지
+  GLW: 코닝
+  NOK: Nokia ADR
+  DELL: 델
+  CRWD: CrowdStrike Holdings
+  ARM: Arm Holdings
+  GFS: GlobalFoundries
+  AVGO: 브로드컴
+  VRT: Vertiv Holdings
+  AMD: AMD
+  INTC: 인텔
+  MTSI: MACOM Tech
+  MPWR: 모놀리틱 파워
+  UNH: 유나이티드헬스 그룹

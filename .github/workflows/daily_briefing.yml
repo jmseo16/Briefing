@@ -1,0 +1,31 @@
+name: Daily Stock Briefing
+
+on:
+  schedule:
+    # 22:30 UTC = 다음날 07:30 KST  (미국 시장 마감 후 1.5시간)
+    - cron: '30 22 * * 1-5'
+  workflow_dispatch:  # 수동 실행 허용
+
+jobs:
+  briefing:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run briefing
+        env:
+          GMAIL_USER: ${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          RECIPIENT_EMAIL: ${{ secrets.RECIPIENT_EMAIL }}
+        run: python src/briefing.py
