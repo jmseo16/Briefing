@@ -1,23 +1,27 @@
-# 관심 종목 리스트
-# 추가: watchlist에 티커 추가 후 names에 한국어 이름 추가
-# 삭제: watchlist에서 티커 제거
+# 종목 추가: sectors 아래 해당 섹터에 티커 추가, names에 한국어 이름 추가
+# 종목 삭제: sectors에서 티커 제거
 
-watchlist:
-  - QCOM
-  - MRVL
-  - GLW
-  - NOK
-  - DELL
-  - CRWD
-  - ARM
-  - GFS
-  - AVGO
-  - VRT
-  - AMD
-  - INTC
-  - MTSI
-  - MPWR
-  - UNH
+sectors:
+  반도체:
+    - QCOM
+    - ARM
+    - AVGO
+    - AMD
+    - INTC
+  반도체/광학:
+    - MRVL
+    - GLW
+    - GFS
+    - MPWR
+    - MTSI
+  온프레미스 AI:
+    - DELL
+    - NOK
+    - VRT
+  사이버보안:
+    - CRWD
+  헬스케어:
+    - UNH
 
 names:
   QCOM: 퀄컴
@@ -25,7 +29,7 @@ names:
   GLW: 코닝
   NOK: Nokia ADR
   DELL: 델
-  CRWD: CrowdStrike Holdings
+  CRWD: CrowdStrike
   ARM: Arm Holdings
   GFS: GlobalFoundries
   AVGO: 브로드컴
@@ -34,4 +38,4 @@ names:
   INTC: 인텔
   MTSI: MACOM Tech
   MPWR: 모놀리틱 파워
-  UNH: 유나이티드헬스 그룹
+  UNH: 유나이티드헬스
