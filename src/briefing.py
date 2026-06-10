@@ -95,17 +95,7 @@ def _rsi_emoji(v) -> str:
     return "⚪"
 
 
-SECTOR_ICONS = {
-    "반도체": "🔵",
-    "광학/전력": "🟣",
-    "온프레미스 AI": "🟠",
-    "사이버보안": "🔴",
-    "헬스케어": "🟢",
-}
-
-
 def _sector_table_html(sector_name: str, tickers: list, stock_map: dict, names: dict) -> str:
-    icon = SECTOR_ICONS.get(sector_name, "▪️")
     rows = ""
     for ticker in tickers:
         s = stock_map.get(ticker)
@@ -129,7 +119,7 @@ def _sector_table_html(sector_name: str, tickers: list, stock_map: dict, names: 
 
     return f"""
     <div style="padding:12px 20px 4px;">
-      <div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:6px;">{icon} {sector_name}</div>
+      <div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:6px;">#{sector_name}</div>
     </div>
     <table style="width:100%;border-collapse:collapse;">
       <thead>
