@@ -1,29 +1,35 @@
-# 종목 추가: sectors 아래 해당 섹터에 티커 추가, names에 한국어 이름 추가
-# 종목 삭제: sectors에서 티커 제거
+# 종목 추가: groups 아래 해당 그룹에 티커 추가, names에 한국어 이름 추가
+# 종목 삭제: groups에서 티커 제거
 
-sectors:
-  반도체:
+groups:
+  보유종목:
+    - NOK
+    - DELL
+    - VRT
+    - AMD
+    - MRVL
     - QCOM
+    - GEV
+    - NBIS
+    - CRDO
+    - 005930.KS
+    - 000660.KS
+    - LITE
+    - COHR
+    - TSM
+    - AMAT
+  관심종목:
     - ARM
     - AVGO
-    - AMD
     - INTC
-  광학/전력:
-    - MRVL
     - GLW
     - GFS
     - MPWR
     - MTSI
-  온프레미스 AI:
-    - DELL
-    - NOK
-    - VRT
     - PWR
     - ETN
     - FIX
-  사이버보안:
     - CRWD
-  헬스케어:
     - UNH
 
 names:
@@ -45,3 +51,12 @@ names:
   PWR: 퀀타서비시스
   ETN: 이튼
   FIX: 컴포트 시스템스
+  GEV: GE버노바
+  NBIS: 네비우스
+  CRDO: 크레도테크
+  TSM: TSMC
+  AMAT: 어플라이드머티리얼스
+  005930.KS: 삼성전자
+  000660.KS: SK하이닉스
+  LITE: 루멘텀
+  COHR: 코히런트

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Daily morning stock briefing — fetches data, cross-checks, and emails a sector-grouped table report."""
+"""Daily morning stock briefing — fetches data and emails a performance + SMA report."""
 
 import os
 import sys
@@ -21,7 +21,7 @@ def load_config(path: str = "config/stocks.yaml") -> dict:
 
 def get_watchlist(config: dict) -> list:
     watchlist = []
-    for tickers in config["sectors"].values():
+    for tickers in config["groups"].values():
         watchlist.extend(tickers)
     return watchlist
 
@@ -33,24 +33,11 @@ def is_within_market_close_window() -> bool:
     return 0 <= minutes_since_close <= 60
 
 
-def calculate_rsi(closes: pd.Series, period: int = 14):
-    if len(closes) < period + 1:
-        return None
-    delta = closes.diff()
-    gain = delta.clip(lower=0)
-    loss = -delta.clip(upper=0)
-    avg_gain = gain.ewm(com=period - 1, min_periods=period).mean()
-    avg_loss = loss.ewm(com=period - 1, min_periods=period).mean()
-    rs = avg_gain / avg_loss
-    rsi = 100 - (100 / (1 + rs))
-    return round(float(rsi.iloc[-1]), 1)
-
-
 def fetch_stock(ticker: str) -> dict:
     t = yf.Ticker(ticker)
     info = t.info
     fast = t.fast_info
-    hist = t.history(period="3mo")
+    hist = t.history(period="1y")
 
     price_info = info.get("currentPrice") or info.get("regularMarketPrice")
     price_fast = float(fast.last_price) if fast.last_price else None
@@ -66,100 +53,155 @@ def fetch_stock(ticker: str) -> dict:
         if current_price and prev_close else None
     )
 
+    perf_1w = perf_1m = perf_6m = perf_ytd = perf_1y = None
+    vs_sma20 = vs_sma50 = None
+
+    if not hist.empty:
+        closes = hist["Close"]
+        last = float(closes.iloc[-1])
+
+        def _pct(n):
+            if len(closes) >= n + 1:
+                base = float(closes.iloc[-(n + 1)])
+                return (last - base) / base * 100 if base else None
+            return None
+
+        perf_1w = _pct(5)
+        perf_1m = _pct(21)
+        perf_6m = _pct(126)
+        perf_1y = _pct(252)
+
+        current_year = datetime.now().year
+        ytd_series = closes[closes.index.year < current_year]
+        if not ytd_series.empty:
+            ytd_base = float(ytd_series.iloc[-1])
+            perf_ytd = (last - ytd_base) / ytd_base * 100 if ytd_base else None
+
+        if len(closes) >= 20:
+            sma20 = float(closes.tail(20).mean())
+            vs_sma20 = (last - sma20) / sma20 * 100
+        if len(closes) >= 50:
+            sma50 = float(closes.tail(50).mean())
+            vs_sma50 = (last - sma50) / sma50 * 100
+
     return {
         "ticker": ticker,
         "name": info.get("shortName") or info.get("longName") or ticker,
         "current_price": current_price,
         "change_pct": change_pct,
-        "forward_pe": info.get("forwardPE"),
-        "peg_ratio": info.get("pegRatio"),
-        "rsi": calculate_rsi(hist["Close"]) if not hist.empty else None,
+        "perf_1w": perf_1w,
+        "perf_1m": perf_1m,
+        "perf_6m": perf_6m,
+        "perf_ytd": perf_ytd,
+        "perf_1y": perf_1y,
+        "vs_sma20": vs_sma20,
+        "vs_sma50": vs_sma50,
         "cross_ok": cross_ok,
     }
 
 
-def _fmt(val, decimals=2, prefix="", suffix="") -> str:
+def _price_str(val, ticker: str) -> str:
     if val is None:
         return "N/A"
-    return f"{prefix}{val:.{decimals}f}{suffix}"
+    return f"₩{int(val):,}" if ticker.endswith(".KS") else f"${val:.2f}"
 
 
-def _change_emoji(v) -> str:
-    return "🟢" if v and v >= 0 else "🔴" if v else ""
+def _pct_str(val) -> str:
+    if val is None:
+        return "N/A"
+    return f"{val:+.1f}%"
 
 
-def _rsi_emoji(v) -> str:
-    if v is None: return "⚪"
-    if v <= 30: return "🟢"
-    if v <= 40: return "🟡"
-    return "⚪"
+def _pct_color(val) -> str:
+    if val is None or val == 0:
+        return "#64748b"
+    return "#16a34a" if val > 0 else "#dc2626"
 
 
-def _sector_table_html(sector_name: str, tickers: list, stock_map: dict, names: dict) -> str:
+def _group_table_html(group_name: str, tickers: list, stock_map: dict, names: dict) -> str:
     rows = ""
     for ticker in tickers:
         s = stock_map.get(ticker)
         if not s:
             continue
         display_name = names.get(ticker, s["name"])[:14]
-        ch_color = "#16a34a" if s["change_pct"] and s["change_pct"] >= 0 else "#dc2626"
         rows += (
             f"<tr style='border-bottom:1px solid #f1f5f9;'>"
-            f"<td style='padding:5px 8px;font-size:12px;'>"
+            f"<td style='padding:5px 8px;font-size:12px;white-space:nowrap;'>"
             f"<div style='font-weight:600;'>{display_name}</div>"
             f"<div style='font-size:10px;color:#94a3b8;'>{ticker}</div>"
             f"</td>"
-            f"<td style='padding:5px 8px;text-align:right;font-family:monospace;font-size:12px;'>{_fmt(s['current_price'], prefix='$')}</td>"
-            f"<td style='padding:5px 8px;text-align:right;color:{ch_color};font-size:12px;'>{_change_emoji(s['change_pct'])} {_fmt(s['change_pct'], suffix='%')}</td>"
-            f"<td style='padding:5px 8px;text-align:right;font-size:12px;'>{_fmt(s['forward_pe'], 1)}</td>"
-            f"<td style='padding:5px 8px;text-align:right;font-size:12px;'>{_fmt(s['peg_ratio'], 2)}</td>"
-            f"<td style='padding:5px 8px;text-align:right;font-size:12px;'>{_rsi_emoji(s['rsi'])} {_fmt(s['rsi'], 1)}</td>"
+            f"<td style='padding:5px 8px;text-align:right;font-family:monospace;font-size:11px;white-space:nowrap;'>{_price_str(s['current_price'], ticker)}</td>"
+            f"<td style='padding:5px 8px;text-align:right;font-size:11px;color:{_pct_color(s['change_pct'])};'>{_pct_str(s['change_pct'])}</td>"
+            f"<td style='padding:5px 8px;text-align:right;font-size:11px;color:{_pct_color(s['perf_1w'])};'>{_pct_str(s['perf_1w'])}</td>"
+            f"<td style='padding:5px 8px;text-align:right;font-size:11px;color:{_pct_color(s['perf_1m'])};'>{_pct_str(s['perf_1m'])}</td>"
+            f"<td style='padding:5px 8px;text-align:right;font-size:11px;color:{_pct_color(s['perf_6m'])};'>{_pct_str(s['perf_6m'])}</td>"
+            f"<td style='padding:5px 8px;text-align:right;font-size:11px;color:{_pct_color(s['perf_ytd'])};'>{_pct_str(s['perf_ytd'])}</td>"
+            f"<td style='padding:5px 8px;text-align:right;font-size:11px;color:{_pct_color(s['perf_1y'])};'>{_pct_str(s['perf_1y'])}</td>"
+            f"<td style='padding:5px 8px;text-align:right;font-size:11px;color:{_pct_color(s['vs_sma20'])};'>{_pct_str(s['vs_sma20'])}</td>"
+            f"<td style='padding:5px 8px;text-align:right;font-size:11px;color:{_pct_color(s['vs_sma50'])};'>{_pct_str(s['vs_sma50'])}</td>"
             f"</tr>"
         )
 
     return f"""
     <div style="padding:12px 20px 4px;">
-      <div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:6px;">#{sector_name}</div>
+      <div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:6px;">#{group_name}</div>
     </div>
-    <table style="width:100%;border-collapse:collapse;">
+    <div style="overflow-x:auto;">
+    <table style="width:100%;border-collapse:collapse;min-width:720px;">
       <thead>
         <tr style="background:#f8fafc;">
-          <th style="padding:5px 8px;text-align:left;font-size:10px;color:#94a3b8;font-weight:500;">종목</th>
-          <th style="padding:5px 8px;text-align:right;font-size:10px;color:#94a3b8;font-weight:500;">현재가</th>
-          <th style="padding:5px 8px;text-align:right;font-size:10px;color:#94a3b8;font-weight:500;">등락률</th>
-          <th style="padding:5px 8px;text-align:right;font-size:10px;color:#94a3b8;font-weight:500;">PER</th>
-          <th style="padding:5px 8px;text-align:right;font-size:10px;color:#94a3b8;font-weight:500;">PEG</th>
-          <th style="padding:5px 8px;text-align:right;font-size:10px;color:#94a3b8;font-weight:500;">RSI</th>
+          <th style="padding:5px 8px;text-align:left;font-size:10px;color:#94a3b8;font-weight:500;white-space:nowrap;">종목</th>
+          <th style="padding:5px 8px;text-align:right;font-size:10px;color:#94a3b8;font-weight:500;white-space:nowrap;">현재가</th>
+          <th style="padding:5px 8px;text-align:right;font-size:10px;color:#94a3b8;font-weight:500;white-space:nowrap;">등락률</th>
+          <th style="padding:5px 8px;text-align:right;font-size:10px;color:#94a3b8;font-weight:500;white-space:nowrap;">1W</th>
+          <th style="padding:5px 8px;text-align:right;font-size:10px;color:#94a3b8;font-weight:500;white-space:nowrap;">1M</th>
+          <th style="padding:5px 8px;text-align:right;font-size:10px;color:#94a3b8;font-weight:500;white-space:nowrap;">6M</th>
+          <th style="padding:5px 8px;text-align:right;font-size:10px;color:#94a3b8;font-weight:500;white-space:nowrap;">YTD</th>
+          <th style="padding:5px 8px;text-align:right;font-size:10px;color:#94a3b8;font-weight:500;white-space:nowrap;">1Y</th>
+          <th style="padding:5px 8px;text-align:right;font-size:10px;color:#94a3b8;font-weight:500;white-space:nowrap;">vs20D</th>
+          <th style="padding:5px 8px;text-align:right;font-size:10px;color:#94a3b8;font-weight:500;white-space:nowrap;">vs50D</th>
         </tr>
       </thead>
       <tbody>{rows}</tbody>
-    </table>"""
+    </table>
+    </div>"""
 
 
 def _todays_points_html(stocks: list) -> str:
     items = []
-    rsi_picks = sorted([s for s in stocks if s["rsi"] is not None and s["rsi"] <= 40], key=lambda x: x["rsi"])
-    if rsi_picks:
-        label = ", ".join(f"{s['ticker']}({_rsi_emoji(s['rsi'])} {s['rsi']:.0f})" for s in rsi_picks[:4])
-        items.append(f"📉 RSI 관심 신호: {label}")
-    peg_picks = sorted([s for s in stocks if s["peg_ratio"] is not None and 0 < s["peg_ratio"] < 1.0], key=lambda x: x["peg_ratio"])
-    if peg_picks:
-        label = ", ".join(f"{s['ticker']}(PEG {s['peg_ratio']:.2f})" for s in peg_picks[:4])
-        items.append(f"💎 PEG 저평가 종목: {label}")
+
+    momentum_breaks = sorted(
+        [s for s in stocks if s["vs_sma50"] is not None and s["vs_sma50"] < 0],
+        key=lambda x: x["vs_sma50"],
+    )
+    if momentum_breaks:
+        label = ", ".join(f"{s['ticker']}({s['vs_sma50']:+.1f}%)" for s in momentum_breaks[:5])
+        items.append(f"📉 모멘텀 이탈 (50일선 하회): {label}")
+
+    golden = sorted(
+        [s for s in stocks if s["vs_sma20"] is not None and s["vs_sma20"] > 0],
+        key=lambda x: x["vs_sma20"],
+        reverse=True,
+    )
+    if golden:
+        label = ", ".join(f"{s['ticker']}({s['vs_sma20']:+.1f}%)" for s in golden[:5])
+        items.append(f"✨ 골든 크로스 (20일선 상회): {label}")
+
     if not items:
-        return "<li>포인트 없음</li>"
+        return "<li>신호 없음</li>"
     return "".join(f'<li style="padding:4px 0;">{item}</li>' for item in items)
 
 
-def build_email_html(sectors: dict, stock_map: dict, names: dict, date_str: str) -> str:
+def build_email_html(groups: dict, stock_map: dict, names: dict, date_str: str) -> str:
     all_ok = all(s["cross_ok"] for s in stock_map.values())
     cross_badge = "✅ 3중 크로스체크 완료" if all_ok else "⚠️ 일부 데이터 불일치"
     cross_color = "#4ade80" if all_ok else "#fbbf24"
 
-    sector_blocks = ""
-    for sector_name, tickers in sectors.items():
-        sector_blocks += _sector_table_html(sector_name, tickers, stock_map, names)
-        sector_blocks += "<div style='height:8px;'></div>"
+    group_blocks = ""
+    for group_name, tickers in groups.items():
+        group_blocks += _group_table_html(group_name, tickers, stock_map, names)
+        group_blocks += "<div style='height:8px;'></div>"
 
     all_stocks = list(stock_map.values())
 
@@ -167,7 +209,7 @@ def build_email_html(sectors: dict, stock_map: dict, names: dict, date_str: str)
 <html>
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="margin:0;padding:12px;background:#f1f5f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#1e293b;">
-  <div style="max-width:520px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.1);">
+  <div style="max-width:800px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.1);">
     <div style="background:#0f172a;padding:16px 20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
       <div>
         <div style="color:#94a3b8;font-size:10px;letter-spacing:.1em;text-transform:uppercase;">Daily Stock Briefing</div>
@@ -175,7 +217,7 @@ def build_email_html(sectors: dict, stock_map: dict, names: dict, date_str: str)
       </div>
       <div style="color:{cross_color};font-size:11px;font-weight:600;">{cross_badge}</div>
     </div>
-    {sector_blocks}
+    {group_blocks}
     <div style="padding:14px 20px;border-top:1px solid #e2e8f0;">
       <div style="font-size:13px;font-weight:700;margin-bottom:8px;">💡 오늘의 포인트</div>
       <ul style="margin:0;padding-left:18px;line-height:1.9;color:#374151;font-size:13px;">{_todays_points_html(all_stocks)}</ul>
@@ -209,7 +251,7 @@ def main():
 
     config_path = os.environ.get("CONFIG_PATH", "config/stocks.yaml")
     config = load_config(config_path)
-    sectors: dict = config["sectors"]
+    groups: dict = config["groups"]
     names: dict = config.get("names", {})
     watchlist = get_watchlist(config)
 
@@ -231,20 +273,19 @@ def main():
             data = fetch_stock(ticker)
             stock_map[ticker] = data
             status = "✅" if data["cross_ok"] else "⚠️"
-            rsi_str = f"RSI={data['rsi']:.0f}" if data["rsi"] else "RSI=N/A"
-            price_str = f"${data['current_price']:.2f}" if data["current_price"] else "N/A"
+            price_str = _price_str(data["current_price"], ticker)
             chg_str = f"({data['change_pct']:+.2f}%)" if data["change_pct"] else ""
-            print(f"  {status} {ticker:<6}  {price_str}  {chg_str}  {rsi_str}")
+            print(f"  {status} {ticker:<12}  {price_str}  {chg_str}")
         except Exception as exc:
             failed.append(ticker)
-            print(f"  ❌ {ticker:<6}  오류: {exc}")
+            print(f"  ❌ {ticker:<12}  오류: {exc}")
 
     all_ok = all(s["cross_ok"] for s in stock_map.values())
     print(f"\n {'✅ 3중 크로스체크 완료' if all_ok else '⚠️ 일부 데이터 불일치'}")
     if failed:
         print(f" ❌ 수집 실패: {', '.join(failed)}")
 
-    html = build_email_html(sectors, stock_map, names, date_str)
+    html = build_email_html(groups, stock_map, names, date_str)
     subject = f"📊 주식 브리핑 — {date_str}"
 
     sender = os.environ["GMAIL_USER"]
