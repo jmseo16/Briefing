@@ -122,6 +122,16 @@ def _pct_color(val) -> str:
     return "#16a34a" if val > 0 else "#dc2626"
 
 
+def _vs50_color(val) -> str:
+    if val is None or val == 0:
+        return "#64748b"
+    if val < 0:
+        return "#dc2626"
+    if val < 5:
+        return "#d97706"
+    return "#16a34a"
+
+
 def _group_table_html(group_name: str, tickers: list, stock_map: dict, names: dict) -> str:
     rows = ""
     for ticker in tickers:
@@ -141,7 +151,7 @@ def _group_table_html(group_name: str, tickers: list, stock_map: dict, names: di
             f"<td style='padding:5px 8px;text-align:right;font-size:11px;color:{_pct_color(s['perf_1m'])};'>{_pct_str(s['perf_1m'])}</td>"
             f"<td style='padding:5px 8px;text-align:right;font-size:11px;color:{_pct_color(s['perf_6m'])};'>{_pct_str(s['perf_6m'])}</td>"
             f"<td style='padding:5px 8px;text-align:right;font-size:11px;color:{_pct_color(s['vs_sma20'])};'>{_pct_str(s['vs_sma20'])}</td>"
-            f"<td style='padding:5px 8px;text-align:right;font-size:11px;color:{_pct_color(s['vs_sma50'])};'>{_pct_str(s['vs_sma50'])}</td>"
+            f"<td style='padding:5px 8px;text-align:right;font-size:11px;color:{_vs50_color(s['vs_sma50'])};'>{_pct_str(s['vs_sma50'])}</td>"
             f"</tr>"
         )
 
