@@ -53,8 +53,9 @@ def fetch_stock(ticker: str) -> dict:
         if current_price and prev_close else None
     )
 
-    perf_1w = perf_1m = perf_6m = perf_ytd = perf_1y = None
+    perf_1w = perf_1m = perf_6m = None
     vs_sma20 = vs_sma50 = None
+    golden_cross = momentum_break = False
 
     if not hist.empty:
         closes = hist["Close"]
@@ -69,13 +70,6 @@ def fetch_stock(ticker: str) -> dict:
         perf_1w = _pct(5)
         perf_1m = _pct(21)
         perf_6m = _pct(126)
-        perf_1y = _pct(252)
-
-        current_year = datetime.now().year
-        ytd_series = closes[closes.index.year < current_year]
-        if not ytd_series.empty:
-            ytd_base = float(ytd_series.iloc[-1])
-            perf_ytd = (last - ytd_base) / ytd_base * 100 if ytd_base else None
 
         if len(closes) >= 20:
             sma20 = float(closes.tail(20).mean())
@@ -83,6 +77,17 @@ def fetch_stock(ticker: str) -> dict:
         if len(closes) >= 50:
             sma50 = float(closes.tail(50).mean())
             vs_sma50 = (last - sma50) / sma50 * 100
+
+        # True crossover signals (yesterday vs today)
+        if len(closes) >= 21:
+            yesterday = float(closes.iloc[-2])
+            sma20_y = float(closes.iloc[-21:-1].mean())
+            golden_cross = (yesterday < sma20_y) and (last > float(closes.tail(20).mean()))
+
+        if len(closes) >= 51:
+            yesterday = float(closes.iloc[-2])
+            sma50_y = float(closes.iloc[-51:-1].mean())
+            momentum_break = (yesterday > sma50_y) and (last < float(closes.tail(50).mean()))
 
     return {
         "ticker": ticker,
@@ -92,10 +97,10 @@ def fetch_stock(ticker: str) -> dict:
         "perf_1w": perf_1w,
         "perf_1m": perf_1m,
         "perf_6m": perf_6m,
-        "perf_ytd": perf_ytd,
-        "perf_1y": perf_1y,
         "vs_sma20": vs_sma20,
         "vs_sma50": vs_sma50,
+        "golden_cross": golden_cross,
+        "momentum_break": momentum_break,
         "cross_ok": cross_ok,
     }
 
@@ -136,8 +141,6 @@ def _group_table_html(group_name: str, tickers: list, stock_map: dict, names: di
             f"<td style='padding:5px 8px;text-align:right;font-size:11px;color:{_pct_color(s['perf_1w'])};'>{_pct_str(s['perf_1w'])}</td>"
             f"<td style='padding:5px 8px;text-align:right;font-size:11px;color:{_pct_color(s['perf_1m'])};'>{_pct_str(s['perf_1m'])}</td>"
             f"<td style='padding:5px 8px;text-align:right;font-size:11px;color:{_pct_color(s['perf_6m'])};'>{_pct_str(s['perf_6m'])}</td>"
-            f"<td style='padding:5px 8px;text-align:right;font-size:11px;color:{_pct_color(s['perf_ytd'])};'>{_pct_str(s['perf_ytd'])}</td>"
-            f"<td style='padding:5px 8px;text-align:right;font-size:11px;color:{_pct_color(s['perf_1y'])};'>{_pct_str(s['perf_1y'])}</td>"
             f"<td style='padding:5px 8px;text-align:right;font-size:11px;color:{_pct_color(s['vs_sma20'])};'>{_pct_str(s['vs_sma20'])}</td>"
             f"<td style='padding:5px 8px;text-align:right;font-size:11px;color:{_pct_color(s['vs_sma50'])};'>{_pct_str(s['vs_sma50'])}</td>"
             f"</tr>"
@@ -148,7 +151,7 @@ def _group_table_html(group_name: str, tickers: list, stock_map: dict, names: di
       <div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:6px;">#{group_name}</div>
     </div>
     <div style="overflow-x:auto;">
-    <table style="width:100%;border-collapse:collapse;min-width:720px;">
+    <table style="width:100%;border-collapse:collapse;min-width:580px;">
       <thead>
         <tr style="background:#f8fafc;">
           <th style="padding:5px 8px;text-align:left;font-size:10px;color:#94a3b8;font-weight:500;white-space:nowrap;">종목</th>
@@ -157,8 +160,6 @@ def _group_table_html(group_name: str, tickers: list, stock_map: dict, names: di
           <th style="padding:5px 8px;text-align:right;font-size:10px;color:#94a3b8;font-weight:500;white-space:nowrap;">1W</th>
           <th style="padding:5px 8px;text-align:right;font-size:10px;color:#94a3b8;font-weight:500;white-space:nowrap;">1M</th>
           <th style="padding:5px 8px;text-align:right;font-size:10px;color:#94a3b8;font-weight:500;white-space:nowrap;">6M</th>
-          <th style="padding:5px 8px;text-align:right;font-size:10px;color:#94a3b8;font-weight:500;white-space:nowrap;">YTD</th>
-          <th style="padding:5px 8px;text-align:right;font-size:10px;color:#94a3b8;font-weight:500;white-space:nowrap;">1Y</th>
           <th style="padding:5px 8px;text-align:right;font-size:10px;color:#94a3b8;font-weight:500;white-space:nowrap;">vs20D</th>
           <th style="padding:5px 8px;text-align:right;font-size:10px;color:#94a3b8;font-weight:500;white-space:nowrap;">vs50D</th>
         </tr>
@@ -168,25 +169,21 @@ def _group_table_html(group_name: str, tickers: list, stock_map: dict, names: di
     </div>"""
 
 
-def _todays_points_html(stocks: list) -> str:
+def _todays_points_html(stocks: list, names: dict) -> str:
     items = []
 
-    momentum_breaks = sorted(
-        [s for s in stocks if s["vs_sma50"] is not None and s["vs_sma50"] < 0],
-        key=lambda x: x["vs_sma50"],
-    )
-    if momentum_breaks:
-        label = ", ".join(f"{s['ticker']}({s['vs_sma50']:+.1f}%)" for s in momentum_breaks[:5])
-        items.append(f"📉 모멘텀 이탈 (50일선 하회): {label}")
+    def display(s):
+        return names.get(s["ticker"], s["ticker"])
 
-    golden = sorted(
-        [s for s in stocks if s["vs_sma20"] is not None and s["vs_sma20"] > 0],
-        key=lambda x: x["vs_sma20"],
-        reverse=True,
-    )
-    if golden:
-        label = ", ".join(f"{s['ticker']}({s['vs_sma20']:+.1f}%)" for s in golden[:5])
-        items.append(f"✨ 골든 크로스 (20일선 상회): {label}")
+    breaks = [s for s in stocks if s["momentum_break"]]
+    if breaks:
+        label = ", ".join(f"{display(s)}({s['vs_sma50']:+.1f}%)" for s in breaks)
+        items.append(f"📉 모멘텀 이탈 (50일선 돌파 하락): {label}")
+
+    crosses = [s for s in stocks if s["golden_cross"]]
+    if crosses:
+        label = ", ".join(f"{display(s)}({s['vs_sma20']:+.1f}%)" for s in crosses)
+        items.append(f"✨ 골든 크로스 (20일선 상향 돌파): {label}")
 
     if not items:
         return "<li>신호 없음</li>"
@@ -220,7 +217,7 @@ def build_email_html(groups: dict, stock_map: dict, names: dict, date_str: str) 
     {group_blocks}
     <div style="padding:14px 20px;border-top:1px solid #e2e8f0;">
       <div style="font-size:13px;font-weight:700;margin-bottom:8px;">💡 오늘의 포인트</div>
-      <ul style="margin:0;padding-left:18px;line-height:1.9;color:#374151;font-size:13px;">{_todays_points_html(all_stocks)}</ul>
+      <ul style="margin:0;padding-left:18px;line-height:1.9;color:#374151;font-size:13px;">{_todays_points_html(all_stocks, names)}</ul>
     </div>
     <div style="background:#f8fafc;padding:10px 20px;border-top:1px solid #e2e8f0;text-align:center;font-size:10px;color:#94a3b8;">
       본 브리핑은 투자 조언이 아닙니다 · {date_str}
