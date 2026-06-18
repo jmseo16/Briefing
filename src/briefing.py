@@ -78,7 +78,6 @@ def fetch_stock(ticker: str) -> dict:
             sma50 = float(closes.tail(50).mean())
             vs_sma50 = (last - sma50) / sma50 * 100
 
-        # True crossover signals (yesterday vs today)
         if len(closes) >= 21:
             yesterday = float(closes.iloc[-2])
             sma20_y = float(closes.iloc[-21:-1].mean())
@@ -239,8 +238,10 @@ def send_email(subject: str, html: str, recipient: str, sender: str, password: s
 
 
 def main():
-    is_manual = os.environ.get("GITHUB_EVENT_NAME") == "workflow_dispatch"
-    if not is_manual and not is_within_market_close_window():
+    event = os.environ.get("GITHUB_EVENT_NAME", "")
+    is_scheduled = event == "schedule"
+    is_manual = event == "workflow_dispatch"
+    if not is_scheduled and not is_manual and not is_within_market_close_window():
         et = pytz.timezone("America/New_York")
         now_et = datetime.now(et)
         print(f" 시장 마감 시간이 아닙니다 (ET {now_et.strftime('%H:%M')}). 발송 건너맜.")
