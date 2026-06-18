@@ -47,7 +47,7 @@ def fetch_stock(ticker: str) -> dict:
     cross_ok = (max(prices) - min(prices)) / min(prices) * 100 < 1.0 if len(prices) >= 2 else len(prices) > 0
 
     current_price = price_info or price_fast or price_hist
-    prev_close = float(fast.previous_close) if fast.previous_close else info.get("previousClose")
+    prev_close = info.get("previousClose") or (float(fast.previous_close) if fast.previous_close else None)
     change_pct = (
         (current_price - prev_close) / prev_close * 100
         if current_price and prev_close else None
@@ -177,7 +177,7 @@ def _todays_points_html(stocks: list, names: dict) -> str:
     breaks = [s for s in stocks if s["momentum_break"]]
     if breaks:
         label = ", ".join(f"{display(s)}({s['vs_sma50']:+.1f}%)" for s in breaks)
-        items.append(f"📉 모멘텀 이탈 (50일선 돌파 하락): {label}")
+        items.append(f"\U0001f4c9 모멘텀 이탈 (50일선 돌파 하락): {label}")
 
     crosses = [s for s in stocks if s["golden_cross"]]
     if crosses:
@@ -215,7 +215,7 @@ def build_email_html(groups: dict, stock_map: dict, names: dict, date_str: str) 
     </div>
     {group_blocks}
     <div style="padding:14px 20px;border-top:1px solid #e2e8f0;">
-      <div style="font-size:13px;font-weight:700;margin-bottom:8px;">💡 오늘의 포인트</div>
+      <div style="font-size:13px;font-weight:700;margin-bottom:8px;">\U0001f4a1 오늘의 포인트</div>
       <ul style="margin:0;padding-left:18px;line-height:1.9;color:#374151;font-size:13px;">{_todays_points_html(all_stocks, names)}</ul>
     </div>
     <div style="background:#f8fafc;padding:10px 20px;border-top:1px solid #e2e8f0;text-align:center;font-size:10px;color:#94a3b8;">
@@ -260,7 +260,7 @@ def main():
     date_str = f"{now.strftime('%Y년 %m월 %d일')} ({day_ko.get(now.strftime('%A'), '')})"
 
     print(f"\n{'='*55}")
-    print(f" 📊 Daily Stock Briefing  {date_str}")
+    print(f" \U0001f4ca Daily Stock Briefing  {date_str}")
     print(f"{'='*55}")
     print(f" 수집 종목: {len(watchlist)}개\n")
 
@@ -284,7 +284,7 @@ def main():
         print(f" ❌ 수집 실패: {', '.join(failed)}")
 
     html = build_email_html(groups, stock_map, names, date_str)
-    subject = f"📊 주식 브리핑 — {date_str}"
+    subject = f"\U0001f4ca 주식 브리핑 — {date_str}"
 
     sender = os.environ["GMAIL_USER"]
     password = os.environ["GMAIL_APP_PASSWORD"]
