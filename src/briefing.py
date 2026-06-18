@@ -78,15 +78,15 @@ def fetch_stock(ticker: str) -> dict:
             sma50 = float(closes.tail(50).mean())
             vs_sma50 = (last - sma50) / sma50 * 100
 
-        if len(closes) >= 21:
-            yesterday = float(closes.iloc[-2])
-            sma20_y = float(closes.iloc[-21:-1].mean())
-            golden_cross = (yesterday < sma20_y) and (last > float(closes.tail(20).mean()))
-
         if len(closes) >= 51:
+            sma20_today = float(closes.tail(20).mean())
+            sma50_today = float(closes.tail(50).mean())
+            sma20_yesterday = float(closes.iloc[-21:-1].mean())
+            sma50_yesterday = float(closes.iloc[-51:-1].mean())
+            golden_cross = (sma20_yesterday < sma50_yesterday) and (sma20_today > sma50_today)
+
             yesterday = float(closes.iloc[-2])
-            sma50_y = float(closes.iloc[-51:-1].mean())
-            momentum_break = (yesterday > sma50_y) and (last < float(closes.tail(50).mean()))
+            momentum_break = (yesterday > sma50_yesterday) and (last < sma50_today)
 
     return {
         "ticker": ticker,
@@ -100,6 +100,7 @@ def fetch_stock(ticker: str) -> dict:
         "vs_sma50": vs_sma50,
         "golden_cross": golden_cross,
         "momentum_break": momentum_break,
+        "sma20_vs_sma50": ((float(closes.tail(20).mean()) - float(closes.tail(50).mean())) / float(closes.tail(50).mean()) * 100) if not hist.empty and len(hist["Close"]) >= 50 else None,
         "cross_ok": cross_ok,
     }
 
@@ -191,8 +192,11 @@ def _todays_points_html(stocks: list, names: dict) -> str:
 
     crosses = [s for s in stocks if s["golden_cross"]]
     if crosses:
-        label = ", ".join(f"{display(s)}({s['vs_sma20']:+.1f}%)" for s in crosses)
-        items.append(f"✨ 골든 크로스 (20일선 상향 돌파): {label}")
+        label = ", ".join(
+            f"{display(s)}(20D/50D {s['sma20_vs_sma50']:+.1f}%)" if s.get("sma20_vs_sma50") is not None else display(s)
+            for s in crosses
+        )
+        items.append(f"✨ 골든 크로스 (20일선이 50일선 상향 돌파): {label}")
 
     if not items:
         return "<li>신호 없음</li>"
