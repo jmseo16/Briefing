@@ -128,7 +128,7 @@ def _vs50_color(val) -> str:
     if val < 0:
         return "#dc2626"
     if val < 5:
-        return "#d97706"
+        return "#eab308"
     return "#16a34a"
 
 
