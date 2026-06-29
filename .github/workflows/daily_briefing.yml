@@ -1,8 +1,6 @@
 name: Daily Stock Briefing
 
 on:
-  schedule:
-    - cron: '5 20 * * 1-5'  # 20:05 UTC = 05:05 KST (EDT 4:05 PM ET)
   workflow_dispatch:
 
 jobs:
