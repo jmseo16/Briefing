@@ -1,0 +1,43 @@
+strategy:
+  targets:
+    core: 0.35
+    satellite: 0.35
+    barbell: 0.15
+    cash: 0.15
+  rebalance_band:
+    core: [0.20, 0.40]
+    satellite: [0.20, 0.40]
+
+holdings:
+  core:
+    - ticker: "133690.KS"   # TIGER 미국나스닥100
+      shares: 540            # 212(연금저축회사) + 157(연금저축) + 171(ISA)
+      name: TIGER 나스닥100
+
+  satellite:
+    - ticker: "005930.KS"
+      shares: 218
+      name: 삼성전자
+    - ticker: "000660.KS"
+      shares: 82
+      name: SK하이닉스
+    - ticker: "486290.KS"   # TIGER 미국AI데이터센터TOP4Plus (티커 확인 필요)
+      shares: 1137
+      name: TIGER AI데이터센터
+    - ticker: "457030.KS"   # KODEX 삼성전자SK하이닉스채권혼합50 (티커 확인 필요)
+      shares: 383
+      name: KODEX 삼전하이닉스혼합
+
+  barbell:
+    - ticker: "458730.KS"   # TIGER 미국배당다우존스 (티커 확인 필요)
+      shares: 5920
+      name: TIGER 배당다우존스
+
+  cash:
+    - ticker: "SGOV"
+      shares: 1228
+      name: SGOV 미국국고채
+    - usd: 14500             # USD 외화예수금 (달러 금액, 환율 자동 적용)
+      name: USD 외화예수금
+    - krw: 1372500           # 기타 현금 합산 (수동 업데이트)
+      name: 기타 현금
