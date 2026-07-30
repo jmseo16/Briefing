@@ -81,9 +81,11 @@ def evaluate_holdings(config):
             elif "usd" in item:
                 if usdkrw is None:
                     usdkrw = fetch_usdkrw()
-                value = item["usd"] * usdkrw
+                usd_amt = item["usd"]
+                value = usd_amt * usdkrw
                 total += value
-                positions.append({"name": item.get("name", "USD"), "ticker": None, "value": value})
+                positions.append({"name": item.get("name", "USD"), "ticker": None,
+                                   "usd": usd_amt, "value": value})
 
             elif "krw" in item:
                 value = item["krw"]
@@ -220,11 +222,27 @@ def build_html(evaluated, weights, grand_total, signals, config, date_str, usdkr
             val = p.get("value")
             val_str = fmt_krw(val) if val is not None else "⚠️ 오류"
             ticker_str = p.get("ticker") or ""
+            price = p.get("price")
+            shares = p.get("shares")
+            usd_amt = p.get("usd")
+
+            if price is not None and shares is not None:
+                if ticker_str and not ticker_str.endswith(".KS"):
+                    price_str = f"${price:.2f}"
+                else:
+                    price_str = fmt_krw(price)
+                detail_str = f"{price_str} × {shares:,}주"
+            elif usd_amt is not None:
+                detail_str = f"${usd_amt:,.0f}"
+            else:
+                detail_str = ""
+
             rows += (
                 f"<tr style='border-bottom:1px solid #f8fafc;'>"
                 f"<td style='padding:5px 10px;font-size:12px;'>{p['name']}</td>"
-                f"<td style='padding:5px 10px;font-size:10px;color:#94a3b8;'>{ticker_str}</td>"
-                f"<td style='padding:5px 10px;text-align:right;font-size:12px;font-family:monospace;'>{val_str}</td>"
+                f"<td style='padding:5px 10px;font-size:10px;color:#94a3b8;white-space:nowrap;'>{ticker_str}</td>"
+                f"<td style='padding:5px 10px;font-size:11px;color:#64748b;white-space:nowrap;'>{detail_str}</td>"
+                f"<td style='padding:5px 10px;text-align:right;font-size:12px;font-family:monospace;white-space:nowrap;'>{val_str}</td>"
                 f"</tr>"
             )
         detail_blocks += f"""
@@ -272,7 +290,7 @@ def build_html(evaluated, weights, grand_total, signals, config, date_str, usdkr
     <div style="border-top:1px solid #e2e8f0;">{detail_blocks}</div>
 
     <div style="background:#f8fafc;padding:10px 20px;border-top:1px solid #e2e8f0;text-align:center;font-size:10px;color:#94a3b8;">
-      본 브리핑은 투자 조언이 아닙니다 · 종목 변경 시 config/portfolio.yaml 업데이트 · {date_str}
+      본 브리핑은 투자 조언이 아닙니다 · {usdkrw_str} 적용 · {date_str}
     </div>
   </div>
 </body>
