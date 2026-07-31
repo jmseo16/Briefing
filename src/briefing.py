@@ -1,27 +1,11 @@
 #!/usr/bin/env python3
 """포트폴리오 트래커 — 코어-위성-바벨 전략 일일 리밸런싱 브리핑"""
 
-import io
-import math
 import os
 import smtplib
 from datetime import datetime
-from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.font_manager as _fm
-import matplotlib.patches as mpatches
-import matplotlib.pyplot as plt
-
-# Use NanumGothic for Korean text if installed (GitHub Actions: fonts-nanum)
-_nanum = "/usr/share/fonts/truetype/nanum/NanumGothic.ttf"
-if __import__("os").path.exists(_nanum):
-    _fm.fontManager.addfont(_nanum)
-    matplotlib.rcParams["font.family"] = _fm.FontProperties(fname=_nanum).get_name()
-matplotlib.rcParams["axes.unicode_minus"] = False
 import pytz
 import yaml
 import yfinance as yf
@@ -213,86 +197,6 @@ CAT_SHADES = {
 }
 
 
-def _png_donut_chart(evaluated, targets, grand_total) -> bytes:
-    """두 개의 도넛 차트를 PNG bytes로 반환."""
-    cat_order = ["core", "satellite", "barbell", "cash"]
-    gap = 0.015  # radians
-
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7, 3.2))
-    fig.patch.set_facecolor("none")
-
-    def draw_donut(ax, slices_outer, slices_inner, title):
-        ax.set_aspect("equal")
-        ax.axis("off")
-        ax.patch.set_facecolor("none")
-        ax.set_title(title, fontsize=9, color="#64748b", pad=6, fontweight="bold")
-
-        start = math.pi / 2  # 12시 방향부터 시계 방향
-
-        for (val, color, label) in slices_outer:
-            angle = val * 2 * math.pi
-            wedge = mpatches.Wedge(
-                (0, 0), 1.0,
-                math.degrees(start - angle + gap),
-                math.degrees(start - gap),
-                width=0.32,
-                facecolor=color, edgecolor="white", linewidth=1.5,
-            )
-            ax.add_patch(wedge)
-            if val > 0.06:
-                mid = start - angle / 2
-                tx, ty = 0.84 * math.cos(mid), 0.84 * math.sin(mid)
-                ax.text(tx, ty, f"{val*100:.0f}%", ha="center", va="center",
-                        fontsize=7.5, color="white", fontweight="bold")
-            start -= angle
-
-        if slices_inner:
-            start = math.pi / 2
-            for (val, color, _) in slices_inner:
-                angle = val * 2 * math.pi
-                wedge = mpatches.Wedge(
-                    (0, 0), 0.66,
-                    math.degrees(start - angle + gap),
-                    math.degrees(start - gap),
-                    width=0.28,
-                    facecolor=color, edgecolor="white", linewidth=1.0,
-                )
-                ax.add_patch(wedge)
-                start -= angle
-
-        ax.set_xlim(-1.1, 1.1)
-        ax.set_ylim(-1.1, 1.1)
-
-    # ── 왼쪽: 목표 배분 (단순 4색 도넛) ──
-    target_slices = [
-        (targets.get(cat, 0), CAT_PRIMARY[cat], CAT_LABELS[cat])
-        for cat in cat_order if cat in targets
-    ]
-    draw_donut(ax1, target_slices, [], "목표 배분")
-
-    # ── 오른쪽: 현재 배분 (외부=카테고리, 내부=종목) ──
-    outer, inner = [], []
-    for cat in cat_order:
-        if cat not in evaluated or grand_total == 0:
-            continue
-        cat_total = evaluated[cat]["total"]
-        frac = cat_total / grand_total
-        outer.append((frac, CAT_PRIMARY[cat], cat))
-        positions = [p for p in evaluated[cat]["positions"] if p.get("value")]
-        shades = CAT_SHADES[cat]
-        for i, p in enumerate(positions):
-            inner.append((p["value"] / grand_total, shades[i % len(shades)], p["name"]))
-
-    draw_donut(ax2, outer, inner, "현재 배분")
-
-    plt.tight_layout(pad=0.5)
-    buf = io.BytesIO()
-    fig.savefig(buf, format="png", dpi=150, bbox_inches="tight", transparent=True)
-    plt.close(fig)
-    buf.seek(0)
-    return buf.read()
-
-
 def build_html(evaluated, weights, grand_total, signals, config, date_str, usdkrw, indices):
     targets = config["strategy"]["targets"]
     band = config["strategy"]["rebalance_band"]
@@ -312,9 +216,6 @@ def build_html(evaluated, weights, grand_total, signals, config, date_str, usdkr
             f"<div style='font-size:11px;color:{ch_color};font-weight:600;'>{ch_str}</div>"
             f"</td>"
         )
-
-    # ── 도넛 차트 ─────────────────────────────────────────────
-    chart_png = _png_donut_chart(evaluated, targets, grand_total)
 
     # ── 전략 요약 테이블 ──────────────────────────────────────
     summary_rows = ""
@@ -422,9 +323,9 @@ def build_html(evaluated, weights, grand_total, signals, config, date_str, usdkr
                 f"    <span style='font-size:12px;'>{p['name']}</span>"
                 f"  </div>"
                 f"</td>"
-                f"<td style='padding:6px 10px;font-size:10px;color:#94a3b8;white-space:nowrap;'>{ticker_str}</td>"
-                f"<td style='padding:6px 10px;font-size:11px;color:#64748b;white-space:nowrap;'>{detail_str}</td>"
-                f"<td style='padding:6px 10px;text-align:right;font-size:11px;white-space:nowrap;'>{_change_html(change_pct)}</td>"
+                f"<td style='padding:6px 10px;font-size:10px;color:#94a3b8;white-space:nowrap;text-align:right;font-family:monospace;'>{ticker_str}</td>"
+                f"<td style='padding:6px 10px;font-size:11px;color:#64748b;white-space:nowrap;text-align:right;font-family:monospace;'>{detail_str}</td>"
+                f"<td style='padding:6px 10px;text-align:right;font-size:11px;white-space:nowrap;font-family:monospace;'>{_change_html(change_pct)}</td>"
                 f"<td style='padding:6px 10px;text-align:right;font-size:12px;font-family:monospace;white-space:nowrap;'>{val_str}</td>"
                 f"</tr>"
             )
@@ -453,11 +354,6 @@ def build_html(evaluated, weights, grand_total, signals, config, date_str, usdkr
     <table style="width:100%;border-collapse:collapse;background:#f8fafc;border-bottom:2px solid #e2e8f0;">
       <tr>{index_cells}</tr>
     </table>
-
-    <!-- 도넛 차트 -->
-    <div style="padding:16px 20px 8px;text-align:center;">
-      <img src="cid:donut_chart" alt="포트폴리오 배분 차트" style="max-width:100%;height:auto;">
-    </div>
 
     <!-- 전략 요약 -->
     <div style="overflow-x:auto;">
@@ -491,28 +387,18 @@ def build_html(evaluated, weights, grand_total, signals, config, date_str, usdkr
   </div>
 </body>
 </html>"""
-    return html, chart_png
+    return html
 
 
-def send_email(subject, html, chart_png, recipient, sender, password):
-    # multipart/related wraps html + inline image so Gmail renders cid: references
-    outer = MIMEMultipart("related")
-    outer["Subject"] = subject
-    outer["From"] = sender
-    outer["To"] = recipient
-
-    alt = MIMEMultipart("alternative")
-    alt.attach(MIMEText(html, "html", "utf-8"))
-    outer.attach(alt)
-
-    img = MIMEImage(chart_png, "png")
-    img.add_header("Content-ID", "<donut_chart>")
-    img.add_header("Content-Disposition", "inline", filename="chart.png")
-    outer.attach(img)
-
+def send_email(subject, html, recipient, sender, password):
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = subject
+    msg["From"] = sender
+    msg["To"] = recipient
+    msg.attach(MIMEText(html, "html", "utf-8"))
     with smtplib.SMTP_SSL("smtp.gmail.com", 465) as srv:
         srv.login(sender, password)
-        srv.sendmail(sender, [recipient], outer.as_string())
+        srv.sendmail(sender, [recipient], msg.as_string())
 
 
 def main():
@@ -559,7 +445,7 @@ def main():
         ch_str = f"{ch:+.2f}%" if ch is not None else "N/A"
         print(f"    {idx['name']}: {ch_str}")
 
-    html, chart_png = build_html(evaluated, weights, grand_total, signals, config, date_str, usdkrw, indices)
+    html = build_html(evaluated, weights, grand_total, signals, config, date_str, usdkrw, indices)
     subject = f"📊 포트폴리오 {'⚠️ 리밸런싱' if signals else '✅ 정상'} — {date_str}"
 
     sender = os.environ["GMAIL_USER"]
@@ -567,7 +453,7 @@ def main():
     recipient = os.environ.get("RECIPIENT_EMAIL", sender)
 
     print(f"\n  이메일 발송 → {recipient}")
-    send_email(subject, html, chart_png, recipient, sender, password)
+    send_email(subject, html, recipient, sender, password)
     print("  완료!\n")
 
 
