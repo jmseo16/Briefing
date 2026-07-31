@@ -240,7 +240,7 @@ def build_html(evaluated, weights, grand_total, signals, config, date_str, usdkr
             badge = "—"
             badge_color = "#94a3b8"
 
-        bar_w = min(int(w * 200), 200)
+        bar_w = min(int(w * 100), 100)
         diff_color = _pct_color(diff)
 
         summary_rows += f"""
@@ -250,7 +250,7 @@ def build_html(evaluated, weights, grand_total, signals, config, date_str, usdkr
               <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:{dot_color};flex-shrink:0;"></span>
               <span style="font-size:12px;font-weight:700;">{label}</span>
             </div>
-            <div style="margin-top:4px;margin-left:16px;background:#e2e8f0;border-radius:4px;height:5px;width:200px;">
+            <div style="margin-top:4px;margin-left:16px;background:#e2e8f0;border-radius:4px;height:5px;width:100px;">
               <div style="background:{dot_color};width:{bar_w}px;height:5px;border-radius:4px;"></div>
             </div>
           </td>
@@ -357,7 +357,7 @@ def build_html(evaluated, weights, grand_total, signals, config, date_str, usdkr
 
     <!-- 전략 요약 -->
     <div style="overflow-x:auto;">
-    <table style="width:100%;border-collapse:collapse;min-width:480px;">
+    <table style="width:100%;border-collapse:collapse;min-width:360px;">
       <thead>
         <tr style="background:#f8fafc;">
           <th style="padding:8px 12px;text-align:left;font-size:10px;color:#94a3b8;font-weight:500;">전략</th>
