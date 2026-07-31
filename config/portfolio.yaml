@@ -14,7 +14,7 @@ holdings:
       shares: 540            # 212(연금저축회사) + 157(연금저축) + 171(ISA)
       name: TIGER 나스닥100
     - ticker: "QQQM"
-      shares: 120
+      shares: 244
       name: QQQM 나스닥100
 
   satellite:
@@ -38,7 +38,7 @@ holdings:
 
   cash:
     - ticker: "SGOV"
-      shares: 1030
+      shares: 680
       name: SGOV 미국국고채
     - krw: 1356487           # 각 계좌 현금잔고 합산 (수동 업데이트)
       name: 기타 현금
