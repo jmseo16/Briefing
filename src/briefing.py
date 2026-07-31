@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """포트폴리오 트래커 — 코어-위성-바벨 전략 일일 리밸런싱 브리핑"""
 
-import base64
 import io
 import math
 import os
 import smtplib
 from datetime import datetime
+from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
@@ -205,8 +205,8 @@ CAT_SHADES = {
 }
 
 
-def _png_donut_chart(evaluated, targets, grand_total) -> str:
-    """두 개의 도넛 차트를 PNG로 생성하고 base64 data URI로 반환."""
+def _png_donut_chart(evaluated, targets, grand_total) -> bytes:
+    """두 개의 도넛 차트를 PNG bytes로 반환."""
     cat_order = ["core", "satellite", "barbell", "cash"]
     gap = 0.015  # radians
 
@@ -280,8 +280,7 @@ def _png_donut_chart(evaluated, targets, grand_total) -> str:
     fig.savefig(buf, format="png", dpi=150, bbox_inches="tight", facecolor="white")
     plt.close(fig)
     buf.seek(0)
-    b64 = base64.b64encode(buf.read()).decode()
-    return f"data:image/png;base64,{b64}"
+    return buf.read()
 
 
 def build_html(evaluated, weights, grand_total, signals, config, date_str, usdkrw, indices):
@@ -305,7 +304,7 @@ def build_html(evaluated, weights, grand_total, signals, config, date_str, usdkr
         )
 
     # ── 도넛 차트 ─────────────────────────────────────────────
-    chart_uri = _png_donut_chart(evaluated, targets, grand_total)
+    chart_png = _png_donut_chart(evaluated, targets, grand_total)
 
     # ── 전략 요약 테이블 ──────────────────────────────────────
     summary_rows = ""
@@ -427,7 +426,7 @@ def build_html(evaluated, weights, grand_total, signals, config, date_str, usdkr
 
     usdkrw_str = f"USD/KRW {usdkrw:,.0f}" if usdkrw else ""
 
-    return f"""<!DOCTYPE html>
+    html = f"""<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="margin:0;padding:12px;background:#f1f5f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#1e293b;">
@@ -447,7 +446,7 @@ def build_html(evaluated, weights, grand_total, signals, config, date_str, usdkr
 
     <!-- 도넛 차트 -->
     <div style="padding:16px 20px 8px;text-align:center;">
-      <img src="{chart_uri}" alt="포트폴리오 배분 차트" style="max-width:100%;height:auto;">
+      <img src="cid:donut_chart" alt="포트폴리오 배분 차트" style="max-width:100%;height:auto;">
     </div>
 
     <!-- 전략 요약 -->
@@ -482,17 +481,28 @@ def build_html(evaluated, weights, grand_total, signals, config, date_str, usdkr
   </div>
 </body>
 </html>"""
+    return html, chart_png
 
 
-def send_email(subject, html, recipient, sender, password):
-    msg = MIMEMultipart("alternative")
-    msg["Subject"] = subject
-    msg["From"] = sender
-    msg["To"] = recipient
-    msg.attach(MIMEText(html, "html", "utf-8"))
+def send_email(subject, html, chart_png, recipient, sender, password):
+    # multipart/related wraps html + inline image so Gmail renders cid: references
+    outer = MIMEMultipart("related")
+    outer["Subject"] = subject
+    outer["From"] = sender
+    outer["To"] = recipient
+
+    alt = MIMEMultipart("alternative")
+    alt.attach(MIMEText(html, "html", "utf-8"))
+    outer.attach(alt)
+
+    img = MIMEImage(chart_png, "png")
+    img.add_header("Content-ID", "<donut_chart>")
+    img.add_header("Content-Disposition", "inline", filename="chart.png")
+    outer.attach(img)
+
     with smtplib.SMTP_SSL("smtp.gmail.com", 465) as srv:
         srv.login(sender, password)
-        srv.sendmail(sender, [recipient], msg.as_string())
+        srv.sendmail(sender, [recipient], outer.as_string())
 
 
 def main():
@@ -539,7 +549,7 @@ def main():
         ch_str = f"{ch:+.2f}%" if ch is not None else "N/A"
         print(f"    {idx['name']}: {ch_str}")
 
-    html = build_html(evaluated, weights, grand_total, signals, config, date_str, usdkrw, indices)
+    html, chart_png = build_html(evaluated, weights, grand_total, signals, config, date_str, usdkrw, indices)
     subject = f"📊 포트폴리오 {'⚠️ 리밸런싱' if signals else '✅ 정상'} — {date_str}"
 
     sender = os.environ["GMAIL_USER"]
@@ -547,7 +557,7 @@ def main():
     recipient = os.environ.get("RECIPIENT_EMAIL", sender)
 
     print(f"\n  이메일 발송 → {recipient}")
-    send_email(subject, html, recipient, sender, password)
+    send_email(subject, html, chart_png, recipient, sender, password)
     print("  완료!\n")
 
 
