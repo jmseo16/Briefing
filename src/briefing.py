@@ -12,8 +12,16 @@ from email.mime.text import MIMEText
 
 import matplotlib
 matplotlib.use("Agg")
+import matplotlib.font_manager as _fm
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
+
+# Use NanumGothic for Korean text if installed (GitHub Actions: fonts-nanum)
+_nanum = "/usr/share/fonts/truetype/nanum/NanumGothic.ttf"
+if __import__("os").path.exists(_nanum):
+    _fm.fontManager.addfont(_nanum)
+    matplotlib.rcParams["font.family"] = _fm.FontProperties(fname=_nanum).get_name()
+matplotlib.rcParams["axes.unicode_minus"] = False
 import pytz
 import yaml
 import yfinance as yf
@@ -201,7 +209,7 @@ CAT_SHADES = {
     "core":      ["#3b82f6", "#2563eb", "#1d4ed8", "#1e40af"],
     "satellite": ["#22c55e", "#16a34a", "#15803d", "#166534"],
     "barbell":   ["#ef4444", "#dc2626", "#b91c1c", "#991b1b"],
-    "cash":      ["#eab308", "#ca8a04", "#a16207", "#854d0e"],
+    "cash":      ["#fde047", "#facc15", "#eab308", "#ca8a04"],
 }
 
 
@@ -210,11 +218,13 @@ def _png_donut_chart(evaluated, targets, grand_total) -> bytes:
     cat_order = ["core", "satellite", "barbell", "cash"]
     gap = 0.015  # radians
 
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7, 3.2), facecolor="white")
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7, 3.2))
+    fig.patch.set_facecolor("none")
 
     def draw_donut(ax, slices_outer, slices_inner, title):
         ax.set_aspect("equal")
         ax.axis("off")
+        ax.patch.set_facecolor("none")
         ax.set_title(title, fontsize=9, color="#64748b", pad=6, fontweight="bold")
 
         start = math.pi / 2  # 12시 방향부터 시계 방향
@@ -277,7 +287,7 @@ def _png_donut_chart(evaluated, targets, grand_total) -> bytes:
 
     plt.tight_layout(pad=0.5)
     buf = io.BytesIO()
-    fig.savefig(buf, format="png", dpi=150, bbox_inches="tight", facecolor="white")
+    fig.savefig(buf, format="png", dpi=150, bbox_inches="tight", transparent=True)
     plt.close(fig)
     buf.seek(0)
     return buf.read()
