@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """포트폴리오 트래커 — 코어-위성-바벨 전략 일일 리밸런싱 브리핑"""
 
+import base64
+import io
 import math
 import os
 import smtplib
@@ -8,6 +10,10 @@ from datetime import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.patches as mpatches
+import matplotlib.pyplot as plt
 import pytz
 import yaml
 import yfinance as yf
@@ -199,111 +205,83 @@ CAT_SHADES = {
 }
 
 
-def _arc_path(cx, cy, r_out, r_in, start_deg, end_deg, color, gap=1.2):
-    span = end_deg - start_deg
-    if span <= gap * 2:
-        return ""
-    s, e = start_deg + gap, end_deg - gap
-
-    def pt(r, deg):
-        rad = math.radians(deg - 90)
-        return cx + r * math.cos(rad), cy + r * math.sin(rad)
-
-    ox1, oy1 = pt(r_out, s)
-    ox2, oy2 = pt(r_out, e)
-    ix1, iy1 = pt(r_in, s)
-    ix2, iy2 = pt(r_in, e)
-    la = 1 if (e - s) > 180 else 0
-    return (
-        f'<path d="M{ox1:.2f},{oy1:.2f}'
-        f' A{r_out},{r_out} 0 {la},1 {ox2:.2f},{oy2:.2f}'
-        f' L{ix2:.2f},{iy2:.2f}'
-        f' A{r_in},{r_in} 0 {la},0 {ix1:.2f},{iy1:.2f}Z"'
-        f' fill="{color}"/>'
-    )
-
-
-def _svg_donut_chart(evaluated, targets, grand_total):
+def _png_donut_chart(evaluated, targets, grand_total) -> str:
+    """두 개의 도넛 차트를 PNG로 생성하고 base64 data URI로 반환."""
     cat_order = ["core", "satellite", "barbell", "cash"]
-    parts = [
-        '<svg viewBox="0 0 400 210" xmlns="http://www.w3.org/2000/svg"'
-        ' style="width:100%;max-width:480px;display:block;margin:0 auto;">'
-    ]
+    gap = 0.015  # radians
 
-    # ── Left: Target donut ──
-    lcx, lcy = 100, 120
-    r_lo, r_li = 78, 46
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7, 3.2), facecolor="white")
 
-    parts.append(
-        f'<text x="{lcx}" y="14" text-anchor="middle" font-size="10"'
-        f' fill="#64748b" font-family="sans-serif" font-weight="600">목표 배분</text>'
-    )
-    angle = 0
-    for cat in cat_order:
-        tgt = targets.get(cat, 0)
-        deg = tgt * 360
-        path = _arc_path(lcx, lcy, r_lo, r_li, angle, angle + deg, CAT_PRIMARY.get(cat, "#94a3b8"))
-        if path:
-            parts.append(path)
-            mid_rad = math.radians(angle + deg / 2 - 90)
-            tx = lcx + (r_lo - 16) * math.cos(mid_rad)
-            ty = lcy + (r_lo - 16) * math.sin(mid_rad)
-            if deg > 25:
-                parts.append(
-                    f'<text x="{tx:.1f}" y="{ty:.1f}" text-anchor="middle"'
-                    f' dominant-baseline="middle" font-size="9" fill="white"'
-                    f' font-weight="700" font-family="sans-serif">{tgt*100:.0f}%</text>'
+    def draw_donut(ax, slices_outer, slices_inner, title):
+        ax.set_aspect("equal")
+        ax.axis("off")
+        ax.set_title(title, fontsize=9, color="#64748b", pad=6, fontweight="bold")
+
+        start = math.pi / 2  # 12시 방향부터 시계 방향
+
+        for (val, color, label) in slices_outer:
+            angle = val * 2 * math.pi
+            wedge = mpatches.Wedge(
+                (0, 0), 1.0,
+                math.degrees(start - angle + gap),
+                math.degrees(start - gap),
+                width=0.32,
+                facecolor=color, edgecolor="white", linewidth=1.5,
+            )
+            ax.add_patch(wedge)
+            if val > 0.06:
+                mid = start - angle / 2
+                tx, ty = 0.84 * math.cos(mid), 0.84 * math.sin(mid)
+                ax.text(tx, ty, f"{val*100:.0f}%", ha="center", va="center",
+                        fontsize=7.5, color="white", fontweight="bold")
+            start -= angle
+
+        if slices_inner:
+            start = math.pi / 2
+            for (val, color, _) in slices_inner:
+                angle = val * 2 * math.pi
+                wedge = mpatches.Wedge(
+                    (0, 0), 0.66,
+                    math.degrees(start - angle + gap),
+                    math.degrees(start - gap),
+                    width=0.28,
+                    facecolor=color, edgecolor="white", linewidth=1.0,
                 )
-        angle += deg
+                ax.add_patch(wedge)
+                start -= angle
 
-    # ── Right: Current donut (outer=category, inner=positions) ──
-    rcx, rcy = 295, 120
-    r_oo, r_om, r_ii = 78, 57, 35
+        ax.set_xlim(-1.1, 1.1)
+        ax.set_ylim(-1.1, 1.1)
 
-    parts.append(
-        f'<text x="{rcx}" y="14" text-anchor="middle" font-size="10"'
-        f' fill="#64748b" font-family="sans-serif" font-weight="600">현재 배분</text>'
-    )
-    angle = 0
+    # ── 왼쪽: 목표 배분 (단순 4색 도넛) ──
+    target_slices = [
+        (targets.get(cat, 0), CAT_PRIMARY[cat], CAT_LABELS[cat])
+        for cat in cat_order if cat in targets
+    ]
+    draw_donut(ax1, target_slices, [], "목표 배분")
+
+    # ── 오른쪽: 현재 배분 (외부=카테고리, 내부=종목) ──
+    outer, inner = [], []
     for cat in cat_order:
         if cat not in evaluated or grand_total == 0:
             continue
         cat_total = evaluated[cat]["total"]
-        cat_deg = cat_total / grand_total * 360
-        shades = CAT_SHADES.get(cat, ["#94a3b8"])
-        primary = CAT_PRIMARY.get(cat, "#94a3b8")
+        frac = cat_total / grand_total
+        outer.append((frac, CAT_PRIMARY[cat], cat))
         positions = [p for p in evaluated[cat]["positions"] if p.get("value")]
-
-        # Outer ring: category color
-        path = _arc_path(rcx, rcy, r_oo, r_om + 1, angle, angle + cat_deg, primary)
-        if path:
-            parts.append(path)
-            mid_rad = math.radians(angle + cat_deg / 2 - 90)
-            tx = rcx + (r_oo - 11) * math.cos(mid_rad)
-            ty = rcy + (r_oo - 11) * math.sin(mid_rad)
-            pct = cat_total / grand_total * 100
-            if cat_deg > 25:
-                parts.append(
-                    f'<text x="{tx:.1f}" y="{ty:.1f}" text-anchor="middle"'
-                    f' dominant-baseline="middle" font-size="8" fill="white"'
-                    f' font-weight="700" font-family="sans-serif">{pct:.0f}%</text>'
-                )
-
-        # Inner ring: individual positions
-        pos_angle = angle
+        shades = CAT_SHADES[cat]
         for i, p in enumerate(positions):
-            if p.get("value") and grand_total > 0:
-                pos_deg = p["value"] / grand_total * 360
-                shade = shades[i % len(shades)]
-                path = _arc_path(rcx, rcy, r_om - 1, r_ii, pos_angle, pos_angle + pos_deg, shade)
-                if path:
-                    parts.append(path)
-                pos_angle += pos_deg
+            inner.append((p["value"] / grand_total, shades[i % len(shades)], p["name"]))
 
-        angle += cat_deg
+    draw_donut(ax2, outer, inner, "현재 배분")
 
-    parts.append("</svg>")
-    return "\n".join(parts)
+    plt.tight_layout(pad=0.5)
+    buf = io.BytesIO()
+    fig.savefig(buf, format="png", dpi=150, bbox_inches="tight", facecolor="white")
+    plt.close(fig)
+    buf.seek(0)
+    b64 = base64.b64encode(buf.read()).decode()
+    return f"data:image/png;base64,{b64}"
 
 
 def build_html(evaluated, weights, grand_total, signals, config, date_str, usdkrw, indices):
@@ -327,7 +305,7 @@ def build_html(evaluated, weights, grand_total, signals, config, date_str, usdkr
         )
 
     # ── 도넛 차트 ─────────────────────────────────────────────
-    svg_chart = _svg_donut_chart(evaluated, targets, grand_total)
+    chart_uri = _png_donut_chart(evaluated, targets, grand_total)
 
     # ── 전략 요약 테이블 ──────────────────────────────────────
     summary_rows = ""
@@ -468,8 +446,8 @@ def build_html(evaluated, weights, grand_total, signals, config, date_str, usdkr
     </table>
 
     <!-- 도넛 차트 -->
-    <div style="padding:20px 16px 8px;">
-      {svg_chart}
+    <div style="padding:16px 20px 8px;text-align:center;">
+      <img src="{chart_uri}" alt="포트폴리오 배분 차트" style="max-width:100%;height:auto;">
     </div>
 
     <!-- 전략 요약 -->
