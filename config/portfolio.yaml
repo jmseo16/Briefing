@@ -39,7 +39,7 @@ holdings:
     - ticker: "0177N0.KS"   # KODEX 삼성전자SK하이닉스채권혼합50
       shares: 383
       name: KODEX 삼전하이닉스혼합
-    - ticker: "UNKNOWN_TDL" # TDL DEFNC AI ETF — 티커 확인 필요
+    - ticker: "AIHY"
       shares: 1122
       name: TDL DEFNC AI ETF
 
