@@ -24,12 +24,24 @@ holdings:
     - ticker: "000660.KS"
       shares: 82
       name: SK하이닉스
+    - ticker: "MXL"
+      shares: 182
+      name: 맥스리니어
+    - ticker: "VRT"
+      shares: 83
+      name: 버티브 홀딩스
+    - ticker: "ASML"
+      shares: 7
+      name: ASML
     - ticker: "0142D0.KS"   # TIGER 미국AI데이터센터TOP4Plus
       shares: 1137
       name: TIGER AI데이터센터
     - ticker: "0177N0.KS"   # KODEX 삼성전자SK하이닉스채권혼합50
       shares: 383
       name: KODEX 삼전하이닉스혼합
+    - ticker: "UNKNOWN_TDL" # TDL DEFNC AI ETF — 티커 확인 필요
+      shares: 1122
+      name: TDL DEFNC AI ETF
 
   barbell:
     - ticker: "458730.KS"   # TIGER 미국배당다우존스
@@ -37,8 +49,5 @@ holdings:
       name: TIGER 배당다우존스
 
   cash:
-    - ticker: "SGOV"
-      shares: 680
-      name: SGOV 미국국고채
-    - krw: 1356487           # 각 계좌 현금잔고 합산 (수동 업데이트)
+    - krw: 584239           # 각 계좌 현금잔고 합산 (수동 업데이트)
       name: 기타 현금
