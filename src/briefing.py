@@ -218,7 +218,7 @@ SECTOR_MAP = {
     "CRDO":      "데이터센터인프라",
     # Satellite — ETF
     "0142D0.KS": "AI데이터센터 ETF",
-    "0177N0.KS": "혼합채권형",
+    "0177N0.KS": "메모리반도체",
     # Barbell
     "458730.KS": "배당 ETF",
     # Cash
