@@ -331,13 +331,9 @@ def build_html(evaluated, weights, grand_total, signals, config, date_str, usdkr
         else:
             extra = ""
 
-        ticker_label = (
-            f" <span style='font-size:10px;color:#94a3b8;'>({ticker_display})</span>"
-            if ticker_display else ""
-        )
         return (
             f"<tr style='border-bottom:1px solid #f8fafc;'>"
-            f"<td style='padding:6px 10px;font-size:12px;'>{p['name']}{ticker_label}{extra}</td>"
+            f"<td style='padding:6px 10px;font-size:12px;'>{p['name']}{extra}</td>"
             f"<td style='padding:6px 10px;font-size:10px;color:#94a3b8;white-space:nowrap;text-align:right;font-family:monospace;'>{ticker_display}</td>"
             f"<td style='padding:6px 10px;font-size:10px;color:#64748b;white-space:nowrap;text-align:right;'>{sector}</td>"
             f"<td style='padding:6px 10px;text-align:right;font-size:11px;white-space:nowrap;font-family:monospace;'>{_change_html(change_pct)}</td>"
