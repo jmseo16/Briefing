@@ -196,6 +196,35 @@ CAT_SHADES = {
     "cash":      ["#fde047", "#facc15", "#eab308", "#ca8a04"],
 }
 
+SECTOR_MAP = {
+    # Core
+    "133690.KS": "나스닥100 ETF",
+    "QQQM":      "나스닥100 ETF",
+    # Satellite — 메모리반도체
+    "005930.KS": "메모리반도체",
+    "000660.KS": "메모리반도체",
+    # Satellite — 반도체장비
+    "KLAC":      "반도체장비",
+    "ASML":      "반도체장비",
+    "TER":       "반도체장비",
+    # Satellite — 반도체패키징
+    "AMKR":      "반도체패키징",
+    # Satellite — 광학
+    "MXL":       "광학",
+    "LITE":      "광학",
+    "GLW":       "광학",
+    # Satellite — 데이터센터
+    "VRT":       "데이터센터인프라",
+    "CRDO":      "데이터센터인프라",
+    # Satellite — ETF
+    "0142D0.KS": "AI데이터센터 ETF",
+    "0177N0.KS": "혼합채권형",
+    # Barbell
+    "458730.KS": "배당 ETF",
+    # Cash
+    "SGOV":      "단기국채",
+}
+
 
 def build_html(evaluated, weights, grand_total, signals, config, date_str, usdkrw, indices):
     targets = config["strategy"]["targets"]
@@ -286,49 +315,72 @@ def build_html(evaluated, weights, grand_total, signals, config, date_str, usdkr
         alert_items = "<li style='padding:5px 0;'>코어·위성 모두 밴드 내 정상 유지 중</li>"
 
     # ── 종목 상세 ────────────────────────────────────────────
+    def _position_row(p, sector=""):
+        val = p.get("value")
+        val_str = fmt_krw(val) if val is not None else "⚠️ 오류"
+        ticker_str = p.get("ticker") or ""
+        ticker_display = ticker_str.replace(".KS", "") if ticker_str.endswith(".KS") else ticker_str
+        price = p.get("price")
+        shares = p.get("shares")
+        usd_amt = p.get("usd")
+        change_pct = p.get("change_pct")
+
+        if price is not None and shares is not None:
+            price_str = fmt_krw(price) if ticker_str.endswith(".KS") else f"${price:.2f}"
+            detail_str = f"{price_str} × {shares:,}주"
+        elif usd_amt is not None:
+            sign = "-" if usd_amt < 0 else ""
+            detail_str = f"{sign}${abs(usd_amt):,.0f}"
+        else:
+            detail_str = ""
+
+        ticker_label = (
+            f" <span style='font-size:10px;color:#94a3b8;'>({ticker_display})</span>"
+            if ticker_display else ""
+        )
+        return (
+            f"<tr style='border-bottom:1px solid #f8fafc;'>"
+            f"<td style='padding:6px 10px;font-size:12px;'>{p['name']}{ticker_label}</td>"
+            f"<td style='padding:6px 10px;font-size:10px;color:#94a3b8;white-space:nowrap;text-align:right;'>{sector}</td>"
+            f"<td style='padding:6px 10px;font-size:11px;color:#64748b;white-space:nowrap;text-align:right;font-family:monospace;'>{detail_str}</td>"
+            f"<td style='padding:6px 10px;text-align:right;font-size:11px;white-space:nowrap;font-family:monospace;'>{_change_html(change_pct)}</td>"
+            f"<td style='padding:6px 10px;text-align:right;font-size:12px;font-family:monospace;white-space:nowrap;'>{val_str}</td>"
+            f"</tr>"
+        )
+
     detail_blocks = ""
     for cat, label in CAT_LABELS.items():
         if cat not in evaluated:
             continue
         positions = evaluated[cat]["positions"]
-        shades = CAT_SHADES.get(cat, ["#94a3b8"])
+
+        # 티커 있는 종목: 섹터별 그룹화 후 섹터 합계 → 종목 금액 순 정렬
+        tickered = [p for p in positions if p.get("ticker")]
+        non_tickered = [p for p in positions if not p.get("ticker")]
+
+        sector_groups: dict = {}
+        for p in tickered:
+            s = SECTOR_MAP.get(p["ticker"], "기타")
+            sector_groups.setdefault(s, []).append(p)
+
+        for s in sector_groups:
+            sector_groups[s].sort(key=lambda p: p.get("value") or 0, reverse=True)
+
+        sorted_sectors = sorted(
+            sector_groups.items(),
+            key=lambda x: sum(p.get("value") or 0 for p in x[1]),
+            reverse=True,
+        )
+
         rows = ""
-        shade_idx = 0
-        for p in positions:
-            val = p.get("value")
-            val_str = fmt_krw(val) if val is not None else "⚠️ 오류"
-            ticker_str = p.get("ticker") or ""
-            price = p.get("price")
-            shares = p.get("shares")
-            usd_amt = p.get("usd")
-            change_pct = p.get("change_pct")
+        for sector, ps in sorted_sectors:
+            for p in ps:
+                rows += _position_row(p, sector)
 
-            swatch_color = shades[shade_idx % len(shades)] if val else "#e2e8f0"
-            if val:
-                shade_idx += 1
+        # 수동 현금 항목 (usd/krw)은 금액 순 정렬, 섹터 없음
+        for p in sorted(non_tickered, key=lambda p: p.get("value") or 0, reverse=True):
+            rows += _position_row(p, "")
 
-            if price is not None and shares is not None:
-                price_str = fmt_krw(price) if ticker_str.endswith(".KS") else f"${price:.2f}"
-                detail_str = f"{price_str} × {shares:,}주"
-            elif usd_amt is not None:
-                detail_str = f"${usd_amt:,.0f}"
-            else:
-                detail_str = ""
-
-            rows += (
-                f"<tr style='border-bottom:1px solid #f8fafc;'>"
-                f"<td style='padding:6px 10px;'>"
-                f"  <div style='display:flex;align-items:center;gap:6px;'>"
-                f"    <span style='display:inline-block;width:8px;height:8px;border-radius:2px;background:{swatch_color};flex-shrink:0;'></span>"
-                f"    <span style='font-size:12px;'>{p['name']}</span>"
-                f"  </div>"
-                f"</td>"
-                f"<td style='padding:6px 10px;font-size:10px;color:#94a3b8;white-space:nowrap;text-align:right;font-family:monospace;'>{ticker_str}</td>"
-                f"<td style='padding:6px 10px;font-size:11px;color:#64748b;white-space:nowrap;text-align:right;font-family:monospace;'>{detail_str}</td>"
-                f"<td style='padding:6px 10px;text-align:right;font-size:11px;white-space:nowrap;font-family:monospace;'>{_change_html(change_pct)}</td>"
-                f"<td style='padding:6px 10px;text-align:right;font-size:12px;font-family:monospace;white-space:nowrap;'>{val_str}</td>"
-                f"</tr>"
-            )
         detail_blocks += f"""
         <div style="padding:10px 20px 2px;">
           <div style="font-size:11px;font-weight:700;color:#475569;">#{label}</div>
