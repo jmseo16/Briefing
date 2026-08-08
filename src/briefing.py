@@ -315,24 +315,21 @@ def build_html(evaluated, weights, grand_total, signals, config, date_str, usdkr
         alert_items = "<li style='padding:5px 0;'>코어·위성 모두 밴드 내 정상 유지 중</li>"
 
     # ── 종목 상세 ────────────────────────────────────────────
+    # 컬럼: 종목명(ticker) | 티커 | 섹터 | 등락률 | 금액
     def _position_row(p, sector=""):
         val = p.get("value")
         val_str = fmt_krw(val) if val is not None else "⚠️ 오류"
         ticker_str = p.get("ticker") or ""
         ticker_display = ticker_str.replace(".KS", "") if ticker_str.endswith(".KS") else ticker_str
-        price = p.get("price")
-        shares = p.get("shares")
         usd_amt = p.get("usd")
         change_pct = p.get("change_pct")
 
-        if price is not None and shares is not None:
-            price_str = fmt_krw(price) if ticker_str.endswith(".KS") else f"${price:.2f}"
-            detail_str = f"{price_str} × {shares:,}주"
-        elif usd_amt is not None:
+        # USD 외화예수금 금액 표시 (detail_str 대신 val_str 사용, 별도 처리 불필요)
+        if usd_amt is not None and not ticker_str:
             sign = "-" if usd_amt < 0 else ""
-            detail_str = f"{sign}${abs(usd_amt):,.0f}"
+            extra = f" <span style='font-size:10px;color:#94a3b8;'>({sign}${abs(usd_amt):,.0f})</span>"
         else:
-            detail_str = ""
+            extra = ""
 
         ticker_label = (
             f" <span style='font-size:10px;color:#94a3b8;'>({ticker_display})</span>"
@@ -340,11 +337,23 @@ def build_html(evaluated, weights, grand_total, signals, config, date_str, usdkr
         )
         return (
             f"<tr style='border-bottom:1px solid #f8fafc;'>"
-            f"<td style='padding:6px 10px;font-size:12px;'>{p['name']}{ticker_label}</td>"
-            f"<td style='padding:6px 10px;font-size:10px;color:#94a3b8;white-space:nowrap;text-align:right;'>{sector}</td>"
-            f"<td style='padding:6px 10px;font-size:11px;color:#64748b;white-space:nowrap;text-align:right;font-family:monospace;'>{detail_str}</td>"
+            f"<td style='padding:6px 10px;font-size:12px;'>{p['name']}{ticker_label}{extra}</td>"
+            f"<td style='padding:6px 10px;font-size:10px;color:#94a3b8;white-space:nowrap;text-align:right;font-family:monospace;'>{ticker_display}</td>"
+            f"<td style='padding:6px 10px;font-size:10px;color:#64748b;white-space:nowrap;text-align:right;'>{sector}</td>"
             f"<td style='padding:6px 10px;text-align:right;font-size:11px;white-space:nowrap;font-family:monospace;'>{_change_html(change_pct)}</td>"
             f"<td style='padding:6px 10px;text-align:right;font-size:12px;font-family:monospace;white-space:nowrap;'>{val_str}</td>"
+            f"</tr>"
+        )
+
+    def _subtotal_row(sector, sector_total, grand_total):
+        pct = sector_total / grand_total * 100 if grand_total else 0
+        return (
+            f"<tr style='background:#f8fafc;border-top:1px solid #e2e8f0;border-bottom:2px solid #e2e8f0;'>"
+            f"<td colspan='3' style='padding:4px 10px 4px 18px;font-size:10px;color:#475569;font-weight:600;'>"
+            f"{sector} 소계</td>"
+            f"<td style='padding:4px 10px;'></td>"
+            f"<td style='padding:4px 10px;text-align:right;font-size:11px;font-weight:700;font-family:monospace;white-space:nowrap;color:#334155;'>"
+            f"{fmt_krw(sector_total)} <span style='font-weight:400;color:#94a3b8;font-size:10px;'>({pct:.1f}%)</span></td>"
             f"</tr>"
         )
 
@@ -354,7 +363,6 @@ def build_html(evaluated, weights, grand_total, signals, config, date_str, usdkr
             continue
         positions = evaluated[cat]["positions"]
 
-        # 티커 있는 종목: 섹터별 그룹화 후 섹터 합계 → 종목 금액 순 정렬
         tickered = [p for p in positions if p.get("ticker")]
         non_tickered = [p for p in positions if not p.get("ticker")]
 
@@ -376,6 +384,8 @@ def build_html(evaluated, weights, grand_total, signals, config, date_str, usdkr
         for sector, ps in sorted_sectors:
             for p in ps:
                 rows += _position_row(p, sector)
+            sector_total = sum(p.get("value") or 0 for p in ps)
+            rows += _subtotal_row(sector, sector_total, grand_total)
 
         # 수동 현금 항목 (usd/krw)은 금액 순 정렬, 섹터 없음
         for p in sorted(non_tickered, key=lambda p: p.get("value") or 0, reverse=True):
