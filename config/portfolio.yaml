@@ -14,7 +14,7 @@ holdings:
       shares: 540            # 212(연금저축회사) + 157(연금저축) + 171(ISA)
       name: TIGER 나스닥100
     - ticker: "QQQM"
-      shares: 189
+      shares: 152
       name: QQQM 나스닥100
 
   satellite:
@@ -22,26 +22,35 @@ holdings:
       shares: 218
       name: 삼성전자
     - ticker: "000660.KS"
-      shares: 82
+      shares: 81
       name: SK하이닉스
     - ticker: "AMKR"
-      shares: 157
+      shares: 211
       name: 앰코 테크놀로지
     - ticker: "KLAC"
-      shares: 42
+      shares: 56
       name: KLA
     - ticker: "MXL"
-      shares: 182
+      shares: 150
       name: 맥스리니어
     - ticker: "GLW"
-      shares: 77
+      shares: 73
       name: 코닝
+    - ticker: "LITE"
+      shares: 14
+      name: 루멘텀 홀딩스
+    - ticker: "TER"
+      shares: 27
+      name: 테라다인
     - ticker: "VRT"
-      shares: 83
+      shares: 41
       name: 버티브 홀딩스
-    - ticker: "AIHY"
-      shares: 1122
-      name: TDL DEFNC AI ETF
+    - ticker: "CRDO"
+      shares: 42
+      name: 크레도 테크놀로지
+    - ticker: "ASML"
+      shares: 6
+      name: ASML
     - ticker: "0142D0.KS"   # TIGER 미국AI데이터센터TOP4Plus
       shares: 1137
       name: TIGER AI데이터센터
@@ -51,11 +60,11 @@ holdings:
 
   barbell:
     - ticker: "458730.KS"   # TIGER 미국배당다우존스
-      shares: 5920
+      shares: 5947
       name: TIGER 배당다우존스
 
   cash:
-    - usd: 37               # USD 외화예수금 (정산 완료)
+    - usd: -9897            # USD 외화예수금 (매수 결제 중, T+2)
       name: USD 외화예수금
-    - krw: 777542           # 각 계좌 현금잔고 합산 (수동 업데이트)
+    - krw: 15785805         # 각 계좌 현금잔고 합산 (수동 업데이트)
       name: 기타 현금
