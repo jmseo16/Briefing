@@ -400,6 +400,9 @@ def build_html(evaluated, weights, grand_total, signals, config, date_str, usdkr
           <div style="border-bottom:2px solid #d9ff00;"></div>
         </div>"""
 
+    _neon = '<div style="border-top:2px solid #d9ff00;"></div>'
+    detail_blocks = _neon + detail_blocks + _neon
+
     usdkrw_str = f"USD/KRW {usdkrw:,.0f}" if usdkrw else ""
 
     html = f"""<!DOCTYPE html>
