@@ -392,10 +392,13 @@ def build_html(evaluated, weights, grand_total, signals, config, date_str, usdkr
             rows += _position_row(p, "")
 
         detail_blocks += f"""
-        <div style="padding:10px 20px 2px;">
-          <div style="font-size:11px;font-weight:700;color:#475569;">#{label}</div>
-        </div>
-        <table style="width:100%;border-collapse:collapse;"><tbody>{rows}</tbody></table>"""
+        <div style="border-top:2px solid #d9ff00;margin-top:4px;">
+          <div style="padding:8px 20px 2px;">
+            <div style="font-size:11px;font-weight:700;color:#475569;">#{label}</div>
+          </div>
+          <table style="width:100%;border-collapse:collapse;"><tbody>{rows}</tbody></table>
+          <div style="border-bottom:2px solid #d9ff00;"></div>
+        </div>"""
 
     usdkrw_str = f"USD/KRW {usdkrw:,.0f}" if usdkrw else ""
 
