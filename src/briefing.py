@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""포트폴리오 트래커 — 코어-위성-바벨 전략 일일 리밸런싱 브리핑"""
+"""포트폴리오 트래커 — 코어·성장위성·안전위성 전략 일일 리밸런싱 브리핑"""
 
 import os
 import smtplib
@@ -176,52 +176,52 @@ def _change_html(v):
 
 
 CAT_LABELS = {
-    "core":      "코어 · 나스닥100",
-    "satellite": "위성 · 모멘텀",
-    "barbell":   "바벨 · 배당다우존스",
-    "cash":      "현금 · 안전자산",
+    "core":             "코어 · S&P500",
+    "growth_satellite": "성장위성 · 모멘텀",
+    "safe_satellite":   "안전위성 · 단기채·배당",
+    "cash":             "현금 · 안전자산",
 }
 
 CAT_PRIMARY = {
-    "core":      "#3b82f6",
-    "satellite": "#22c55e",
-    "barbell":   "#ef4444",
-    "cash":      "#eab308",
+    "core":             "#3b82f6",
+    "growth_satellite": "#22c55e",
+    "safe_satellite":   "#8b5cf6",
+    "cash":             "#eab308",
 }
 
 CAT_SHADES = {
-    "core":      ["#3b82f6", "#2563eb", "#1d4ed8", "#1e40af"],
-    "satellite": ["#22c55e", "#16a34a", "#15803d", "#166534"],
-    "barbell":   ["#ef4444", "#dc2626", "#b91c1c", "#991b1b"],
-    "cash":      ["#fde047", "#facc15", "#eab308", "#ca8a04"],
+    "core":             ["#3b82f6", "#2563eb", "#1d4ed8", "#1e40af"],
+    "growth_satellite": ["#22c55e", "#16a34a", "#15803d", "#166534"],
+    "safe_satellite":   ["#8b5cf6", "#7c3aed", "#6d28d9", "#5b21b6"],
+    "cash":             ["#fde047", "#facc15", "#eab308", "#ca8a04"],
 }
 
 SECTOR_MAP = {
-    # Core
+    # Core — 현재 나스닥100, 다음주 TIGER S&P500(360750.KS)으로 전환 예정
     "133690.KS": "나스닥100 ETF",
     "QQQM":      "나스닥100 ETF",
-    # Satellite — 메모리반도체
+    "360750.KS": "S&P500 ETF",    # TIGER 미국S&P500 — 편입 예정
+    # Growth Satellite — 메모리반도체
     "005930.KS": "메모리반도체",
     "000660.KS": "메모리반도체",
-    # Satellite — 반도체장비
+    "0177N0.KS": "메모리반도체",
+    # Growth Satellite — 반도체장비
     "KLAC":      "반도체장비",
     "ASML":      "반도체장비",
     "TER":       "반도체장비",
-    # Satellite — 반도체패키징
+    # Growth Satellite — 반도체패키징
     "AMKR":      "반도체패키징",
-    # Satellite — 광학
+    # Growth Satellite — 광학
     "MXL":       "광학",
     "LITE":      "광학",
     "GLW":       "광학",
-    # Satellite — 데이터센터
+    # Growth Satellite — 데이터센터
     "VRT":       "데이터센터인프라",
     "CRDO":      "데이터센터인프라",
-    # Satellite — ETF
+    # Growth Satellite — ETF
     "0142D0.KS": "AI데이터센터 ETF",
-    "0177N0.KS": "메모리반도체",
-    # Barbell
+    # Safe Satellite
     "458730.KS": "배당 ETF",
-    # Cash
     "SGOV":      "단기국채",
 }
 
@@ -312,7 +312,7 @@ def build_html(evaluated, weights, grand_total, signals, config, date_str, usdkr
         alert_bg = "#f0fdf4"
         alert_border = "#16a34a"
         alert_title = "✅ 리밸런싱 불필요"
-        alert_items = "<li style='padding:5px 0;'>코어·위성 모두 밴드 내 정상 유지 중</li>"
+        alert_items = "<li style='padding:5px 0;'>코어·성장위성·안전위성 모두 밴드 내 정상 유지 중</li>"
 
     # ── 종목 상세 ────────────────────────────────────────────
     # 컬럼: 종목명(ticker) | 티커 | 섹터 | 등락률 | 금액
@@ -408,7 +408,7 @@ def build_html(evaluated, weights, grand_total, signals, config, date_str, usdkr
   <div style="max-width:680px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.1);">
 
     <div style="background:#0f172a;padding:18px 20px;">
-      <div style="color:#94a3b8;font-size:10px;letter-spacing:.1em;text-transform:uppercase;">Portfolio Briefing · 코어-위성-바벨</div>
+      <div style="color:#94a3b8;font-size:10px;letter-spacing:.1em;text-transform:uppercase;">Portfolio Briefing · 코어-성장위성-안전위성</div>
       <div style="color:#fff;font-size:15px;font-weight:700;margin-top:2px;">{date_str}</div>
       <div style="color:#60a5fa;font-size:22px;font-weight:800;margin-top:4px;">{fmt_krw(grand_total)}</div>
       <div style="color:#475569;font-size:10px;margin-top:2px;">{usdkrw_str}</div>
