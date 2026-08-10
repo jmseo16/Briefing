@@ -204,6 +204,7 @@ SECTOR_MAP = {
     "0177N0.KS": "메모리반도체",
     # Growth Satellite — 반도체장비
     "KLAC":      "반도체장비",
+    "LRCX":      "반도체장비",
     "ASML":      "반도체장비",
     "TER":       "반도체장비",
     # Growth Satellite — 반도체패키징

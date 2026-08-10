@@ -10,12 +10,9 @@ strategy:
 
 holdings:
   core:
-    - ticker: "133690.KS"   # TIGER 미국나스닥100 → TIGER S&P500(360750.KS) 전환 예정
+    - ticker: "133690.KS"   # TIGER 미국나스닥100
       shares: 540            # 212(연금저축회사) + 157(연금저축) + 171(ISA)
       name: TIGER 나스닥100
-    - ticker: "QQQM"
-      shares: 152
-      name: QQQM 나스닥100
 
   growth_satellite:
     - ticker: "005930.KS"
@@ -30,6 +27,9 @@ holdings:
     - ticker: "KLAC"
       shares: 56
       name: KLA
+    - ticker: "LRCX"
+      shares: 35
+      name: 램 리서치
     - ticker: "MXL"
       shares: 150
       name: 맥스리니어
@@ -59,13 +59,10 @@ holdings:
       name: KODEX 삼전하이닉스혼합
 
   safe_satellite:
-    - ticker: "458730.KS"   # TIGER 미국배당다우존스
-      shares: 5947
-      name: TIGER 배당다우존스
-    # - ticker: "SGOV"       # 단기국채 — 편입 예정
-    #   shares: 0
-    #   name: SGOV 단기국채
-    - usd: -9897            # USD 외화예수금 (매수 결제 중, T+2)
+    - ticker: "SGOV"
+      shares: 349
+      name: SGOV 단기국채
+    - krw: -1082258         # USD 외화예수금 (KRW 환산)
       name: USD 외화예수금
-    - krw: 15785805         # 각 계좌 현금잔고 합산 (수동 업데이트)
+    - krw: 92060920         # 각 계좌 현금잔고 합산 (수동 업데이트)
       name: 기타 현금
