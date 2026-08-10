@@ -176,24 +176,21 @@ def _change_html(v):
 
 
 CAT_LABELS = {
-    "core":             "코어 · S&P500",
+    "core":             "코어 · 나스닥100",
     "growth_satellite": "성장위성 · 모멘텀",
-    "safe_satellite":   "안전위성 · 단기채·배당",
-    "cash":             "현금 · 안전자산",
+    "safe_satellite":   "안전위성 · 배당·현금",
 }
 
 CAT_PRIMARY = {
     "core":             "#3b82f6",
     "growth_satellite": "#22c55e",
     "safe_satellite":   "#8b5cf6",
-    "cash":             "#eab308",
 }
 
 CAT_SHADES = {
     "core":             ["#3b82f6", "#2563eb", "#1d4ed8", "#1e40af"],
     "growth_satellite": ["#22c55e", "#16a34a", "#15803d", "#166534"],
     "safe_satellite":   ["#8b5cf6", "#7c3aed", "#6d28d9", "#5b21b6"],
-    "cash":             ["#fde047", "#facc15", "#eab308", "#ca8a04"],
 }
 
 SECTOR_MAP = {
@@ -312,7 +309,7 @@ def build_html(evaluated, weights, grand_total, signals, config, date_str, usdkr
         alert_bg = "#f0fdf4"
         alert_border = "#16a34a"
         alert_title = "✅ 리밸런싱 불필요"
-        alert_items = "<li style='padding:5px 0;'>코어·성장위성·안전위성 모두 밴드 내 정상 유지 중</li>"
+        alert_items = "<li style='padding:5px 0;'>코어 · 성장위성 · 안전위성 모두 밴드 내 정상 유지 중</li>"
 
     # ── 종목 상세 ────────────────────────────────────────────
     # 컬럼: 종목명(ticker) | 티커 | 섹터 | 등락률 | 금액
@@ -408,7 +405,7 @@ def build_html(evaluated, weights, grand_total, signals, config, date_str, usdkr
   <div style="max-width:680px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.1);">
 
     <div style="background:#0f172a;padding:18px 20px;">
-      <div style="color:#94a3b8;font-size:10px;letter-spacing:.1em;text-transform:uppercase;">Portfolio Briefing · 코어-성장위성-안전위성</div>
+      <div style="color:#94a3b8;font-size:10px;letter-spacing:.1em;text-transform:uppercase;">Portfolio Briefing · 코어(나스닥100)-성장위성-안전위성</div>
       <div style="color:#fff;font-size:15px;font-weight:700;margin-top:2px;">{date_str}</div>
       <div style="color:#60a5fa;font-size:22px;font-weight:800;margin-top:4px;">{fmt_krw(grand_total)}</div>
       <div style="color:#475569;font-size:10px;margin-top:2px;">{usdkrw_str}</div>
