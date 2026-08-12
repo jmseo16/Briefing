@@ -202,6 +202,8 @@ SECTOR_MAP = {
     "005930.KS": "메모리반도체",
     "000660.KS": "메모리반도체",
     "0177N0.KS": "메모리반도체",
+    # Growth Satellite — 종합반도체
+    "INTC":      "종합반도체",
     # Growth Satellite — 반도체장비
     "KLAC":      "반도체장비",
     "LRCX":      "반도체장비",

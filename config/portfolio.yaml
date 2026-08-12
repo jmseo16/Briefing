@@ -1,12 +1,12 @@
 strategy:
   targets:
     core: 0.35
-    growth_satellite: 0.35
-    safe_satellite: 0.30
+    growth_satellite: 0.45
+    safe_satellite: 0.20
   rebalance_band:
     core: [0.25, 0.45]
-    growth_satellite: [0.25, 0.45]
-    safe_satellite: [0.20, 0.40]
+    growth_satellite: [0.35, 0.55]
+    safe_satellite: [0.10, 0.30]
 
 holdings:
   core:
@@ -19,8 +19,11 @@ holdings:
       shares: 218
       name: 삼성전자
     - ticker: "000660.KS"
-      shares: 81
+      shares: 71
       name: SK하이닉스
+    - ticker: "INTC"
+      shares: 49
+      name: 인텔
     - ticker: "AMKR"
       shares: 211
       name: 앰코 테크놀로지
@@ -30,9 +33,6 @@ holdings:
     - ticker: "LRCX"
       shares: 35
       name: 램 리서치
-    - ticker: "MXL"
-      shares: 150
-      name: 맥스리니어
     - ticker: "GLW"
       shares: 73
       name: 코닝
@@ -46,7 +46,7 @@ holdings:
       shares: 41
       name: 버티브 홀딩스
     - ticker: "CRDO"
-      shares: 42
+      shares: 55
       name: 크레도 테크놀로지
     - ticker: "ASML"
       shares: 6
@@ -59,5 +59,7 @@ holdings:
     - ticker: "SGOV"
       shares: 349
       name: SGOV 단기국채
-    - krw: 658312            # 각 계좌 현금잔고 합산 (수동 업데이트)
+    - krw: 2974372           # USD 외화예수금 (KRW 환산)
+      name: USD 외화예수금
+    - krw: 15098862          # 각 계좌 현금잔고 합산 (수동 업데이트)
       name: 기타 현금
