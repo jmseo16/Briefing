@@ -1,43 +1,72 @@
 strategy:
   targets:
-    core: 0.35
-    satellite: 0.35
-    barbell: 0.15
-    cash: 0.15
+    core: 0.35              # 나스닥100
+    growth_satellite: 0.40  # 모멘텀 (삼성·하이닉스 + 6종목)
+    schd: 0.10              # SCHD 우량배당
+    bitcoin: 0.05
+    gold: 0.10
   rebalance_band:
     core: [0.25, 0.45]
-    satellite: [0.25, 0.45]
+    growth_satellite: [0.30, 0.50]
+    schd: [0.05, 0.15]
+    bitcoin: [0.00, 0.10]
+    gold: [0.00, 0.20]
 
 holdings:
   core:
     - ticker: "133690.KS"   # TIGER 미국나스닥100
-      shares: 540            # 212(연금저축회사) + 157(연금저축) + 171(ISA)
+      shares: 906            # 210(연금저축회사) + 61(IRP) + 635(연금저축)
       name: TIGER 나스닥100
 
-  satellite:
+  growth_satellite:
     - ticker: "005930.KS"
-      shares: 218
+      shares: 222            # 218(종합) + 4(ISA)
       name: 삼성전자
     - ticker: "000660.KS"
-      shares: 82
+      shares: 45             # 25(종합) + 20(ISA)
       name: SK하이닉스
-    - ticker: "0142D0.KS"   # TIGER 미국AI데이터센터TOP4Plus
-      shares: 1137
-      name: TIGER AI데이터센터
+    - ticker: "INTC"
+      shares: 153
+      name: 인텔
+    - ticker: "AMKR"
+      shares: 263
+      name: 앰코 테크놀로지
+    - ticker: "MRVL"
+      shares: 58
+      name: 마벨 테크놀로지
+    - ticker: "MXL"
+      shares: 206
+      name: 맥스리니어
+    - ticker: "NBIS"
+      shares: 65
+      name: 네비우스 그룹
+    - ticker: "LITE"
+      shares: 16
+      name: 루멘텀 홀딩스
+    - ticker: "VRT"
+      shares: 54
+      name: 버티브 홀딩스
+    - ticker: "CRDO"
+      shares: 60
+      name: 크레도 테크놀로지
+    - ticker: "ALAB"
+      shares: 46
+      name: 아스테라 랩스
     - ticker: "0177N0.KS"   # KODEX 삼성전자SK하이닉스채권혼합50
       shares: 383
       name: KODEX 삼전하이닉스혼합
 
-  barbell:
-    - ticker: "458730.KS"   # TIGER 미국배당다우존스
-      shares: 5920
-      name: TIGER 배당다우존스
+  schd:
+    - ticker: "SCHD"
+      shares: 0              # 매수 예정
+      name: SCHD 우량배당
 
-  cash:
-    - ticker: "SGOV"
-      shares: 1228
-      name: SGOV 미국국고채
-    - usd: 14500             # USD 외화예수금 (달러 금액, 환율 자동 적용)
+  safe_satellite:            # 대기 현금 (모멘텀·SCHD·BTC·금 편입 후 소멸 예정)
+    - krw: 40484563
       name: USD 외화예수금
-    - krw: 1372500           # 기타 현금 합산 (수동 업데이트)
+    - krw: 9379470
       name: 기타 현금
+
+  bitcoin: []                # BTC 편입 예정
+
+  gold: []                   # 금 ETF 편입 예정

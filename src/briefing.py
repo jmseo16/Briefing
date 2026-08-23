@@ -1,15 +1,13 @@
 #!/usr/bin/env python3
-"""포트폴리오 트래커 — 코어-위성-바벨 전략 일일 리밸런싱 브리핑"""
+"""포트폴리오 트래커 — 코어(S&P500)·성장위성·안전위성 전략 일일 리밸런싱 브리핑"""
 
 import os
-import sys
-import yaml
 import smtplib
+from datetime import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from datetime import datetime
-
 import pytz
+import yaml
 import yfinance as yf
 
 
@@ -18,7 +16,7 @@ def load_config(path="config/portfolio.yaml"):
         return yaml.safe_load(f)
 
 
-def fetch_price(ticker):
+def fetch_price_and_change(ticker):
     t = yf.Ticker(ticker)
     info = t.info
     price = info.get("currentPrice") or info.get("regularMarketPrice")
@@ -31,7 +29,16 @@ def fetch_price(ticker):
         hist = t.history(period="5d")
         if not hist.empty:
             price = float(hist["Close"].iloc[-1])
-    return price
+
+    prev = info.get("previousClose") or info.get("regularMarketPreviousClose")
+    if prev is None:
+        try:
+            prev = float(t.fast_info.previous_close)
+        except Exception:
+            pass
+
+    change_pct = (price - prev) / prev * 100 if price and prev else None
+    return price, change_pct
 
 
 def fetch_usdkrw():
@@ -48,6 +55,26 @@ def fetch_usdkrw():
     return 1380.0
 
 
+def fetch_indices():
+    specs = [
+        ("QQQ",   "나스닥100"),
+        ("^GSPC", "S&P500"),
+        ("^KS11", "코스피"),
+    ]
+    results = []
+    for ticker, name in specs:
+        try:
+            t = yf.Ticker(ticker)
+            fi = t.fast_info
+            price = float(fi.last_price) if fi.last_price else None
+            prev  = float(fi.previous_close) if fi.previous_close else None
+            change_pct = (price - prev) / prev * 100 if price and prev else None
+            results.append({"name": name, "price": price, "change_pct": change_pct})
+        except Exception:
+            results.append({"name": name, "price": None, "change_pct": None})
+    return results
+
+
 def evaluate_holdings(config):
     usdkrw = None
     results = {}
@@ -61,7 +88,7 @@ def evaluate_holdings(config):
                 ticker = item["ticker"]
                 shares = item.get("shares", 0)
                 name = item.get("name", ticker)
-                price = fetch_price(ticker)
+                price, change_pct = fetch_price_and_change(ticker)
 
                 if price is None:
                     positions.append({"name": name, "ticker": ticker, "value": None, "error": True})
@@ -75,15 +102,19 @@ def evaluate_holdings(config):
                     value = price * shares
 
                 total += value
-                positions.append({"name": name, "ticker": ticker, "shares": shares,
-                                   "price": price, "value": value})
+                positions.append({
+                    "name": name, "ticker": ticker, "shares": shares,
+                    "price": price, "change_pct": change_pct, "value": value,
+                })
 
             elif "usd" in item:
                 if usdkrw is None:
                     usdkrw = fetch_usdkrw()
-                value = item["usd"] * usdkrw
+                usd_amt = item["usd"]
+                value = usd_amt * usdkrw
                 total += value
-                positions.append({"name": item.get("name", "USD"), "ticker": None, "value": value})
+                positions.append({"name": item.get("name", "USD"), "ticker": None,
+                                   "usd": usd_amt, "value": value})
 
             elif "krw" in item:
                 value = item["krw"]
@@ -136,18 +167,98 @@ def _pct_color(v):
     return "#64748b"
 
 
+def _change_html(v):
+    if v is None:
+        return '<span style="color:#94a3b8;">—</span>'
+    color = "#16a34a" if v >= 0 else "#dc2626"
+    arrow = "▲" if v >= 0 else "▼"
+    return f'<span style="color:{color};font-weight:600;">{arrow} {abs(v):.2f}%</span>'
+
+
 CAT_LABELS = {
-    "core": "코어 · 나스닥100",
-    "satellite": "위성 · 모멘텀",
-    "barbell": "바벨 · 배당다우존스",
-    "cash": "현금 · 안전자산",
+    "core":             "코어 · 나스닥100",
+    "growth_satellite": "성장위성 · 모멘텀",
+    "schd":             "SCHD · 우량배당",
+    "bitcoin":          "비트코인",
+    "gold":             "금",
+    "safe_satellite":   "대기 현금",
+}
+
+CAT_PRIMARY = {
+    "core":             "#3b82f6",
+    "growth_satellite": "#22c55e",
+    "schd":             "#0ea5e9",
+    "bitcoin":          "#f97316",
+    "gold":             "#eab308",
+    "safe_satellite":   "#94a3b8",
+}
+
+CAT_SHADES = {
+    "core":             ["#3b82f6", "#2563eb", "#1d4ed8", "#1e40af"],
+    "growth_satellite": ["#22c55e", "#16a34a", "#15803d", "#166534"],
+    "schd":             ["#0ea5e9", "#0284c7", "#0369a1", "#075985"],
+    "bitcoin":          ["#f97316", "#ea580c", "#c2410c", "#9a3412"],
+    "gold":             ["#eab308", "#ca8a04", "#a16207", "#854d0e"],
+    "safe_satellite":   ["#94a3b8", "#64748b", "#475569", "#334155"],
+}
+
+SECTOR_MAP = {
+    # Core
+    "133690.KS": "나스닥100 ETF",
+    "360750.KS": "S&P500 ETF",
+    # Growth — 메모리반도체
+    "005930.KS": "메모리반도체",
+    "000660.KS": "메모리반도체",
+    "0177N0.KS": "메모리반도체",
+    # Growth — 종합반도체
+    "INTC":      "종합반도체",
+    "MXL":       "종합반도체",
+    # Growth — 반도체장비
+    "KLAC":      "반도체장비",
+    "LRCX":      "반도체장비",
+    "ASML":      "반도체장비",
+    "TER":       "반도체장비",
+    # Growth — 반도체패키징
+    "AMKR":      "반도체패키징",
+    # Growth — 네트워킹반도체
+    "MRVL":      "네트워킹반도체",
+    "CRDO":      "네트워킹반도체",
+    # Growth — 데이터센터인프라
+    "VRT":       "데이터센터인프라",
+    "ALAB":      "데이터센터인프라",
+    # Growth — AI클라우드
+    "NBIS":      "AI클라우드",
+    # Growth — 광학
+    "LITE":      "광학",
+    "GLW":       "광학",
+    # Safe / SCHD
+    "SGOV":      "단기국채",
+    "458730.KS": "배당 ETF",
+    "SCHD":      "배당 ETF",
 }
 
 
-def build_html(evaluated, weights, grand_total, signals, config, date_str, usdkrw):
+def build_html(evaluated, weights, grand_total, signals, config, date_str, usdkrw, indices):
     targets = config["strategy"]["targets"]
     band = config["strategy"]["rebalance_band"]
 
+    # ── 지수 현황 ─────────────────────────────────────────────
+    index_cells = ""
+    for idx in indices:
+        ch = idx["change_pct"]
+        ch_color = "#16a34a" if ch and ch >= 0 else "#dc2626" if ch and ch < 0 else "#64748b"
+        arrow = "▲" if ch and ch >= 0 else "▼" if ch else ""
+        ch_str = f"{arrow} {abs(ch):.2f}%" if ch is not None else "—"
+        price_str = f"{idx['price']:,.2f}" if idx["price"] else "—"
+        index_cells += (
+            f"<td style='padding:10px 14px;text-align:center;border-right:1px solid #e2e8f0;'>"
+            f"<div style='font-size:10px;color:#94a3b8;margin-bottom:3px;'>{idx['name']}</div>"
+            f"<div style='font-size:13px;font-weight:700;font-family:monospace;'>{price_str}</div>"
+            f"<div style='font-size:11px;color:{ch_color};font-weight:600;'>{ch_str}</div>"
+            f"</td>"
+        )
+
+    # ── 전략 요약 테이블 ──────────────────────────────────────
     summary_rows = ""
     for cat, label in CAT_LABELS.items():
         if cat not in evaluated:
@@ -156,11 +267,12 @@ def build_html(evaluated, weights, grand_total, signals, config, date_str, usdkr
         tgt = targets.get(cat, 0)
         diff = w - tgt
         val = evaluated[cat]["total"]
+        dot_color = CAT_PRIMARY.get(cat, "#94a3b8")
 
         if cat in band:
             lo, hi = band[cat]
             if w < lo or w > hi:
-                badge = "\U0001f534 이탈"
+                badge = "🔴 이탈"
                 badge_color = "#dc2626"
             else:
                 badge = "✅ 정상"
@@ -169,15 +281,18 @@ def build_html(evaluated, weights, grand_total, signals, config, date_str, usdkr
             badge = "—"
             badge_color = "#94a3b8"
 
-        bar_w = min(int(w * 200), 200)
+        bar_w = min(int(w * 100), 100)
         diff_color = _pct_color(diff)
 
         summary_rows += f"""
         <tr style="border-bottom:1px solid #f1f5f9;">
           <td style="padding:10px 12px;">
-            <div style="font-size:12px;font-weight:700;">{label}</div>
-            <div style="margin-top:4px;background:#e2e8f0;border-radius:4px;height:6px;width:200px;">
-              <div style="background:#3b82f6;width:{bar_w}px;height:6px;border-radius:4px;"></div>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:{dot_color};flex-shrink:0;"></span>
+              <span style="font-size:12px;font-weight:700;">{label}</span>
+            </div>
+            <div style="margin-top:4px;margin-left:16px;background:#e2e8f0;border-radius:4px;height:5px;width:100px;">
+              <div style="background:{dot_color};width:{bar_w}px;height:5px;border-radius:4px;"></div>
             </div>
           </td>
           <td style="padding:10px 12px;text-align:right;font-size:16px;font-weight:800;">{w*100:.1f}%</td>
@@ -187,6 +302,7 @@ def build_html(evaluated, weights, grand_total, signals, config, date_str, usdkr
           <td style="padding:10px 12px;text-align:center;font-size:12px;color:{badge_color};white-space:nowrap;">{badge}</td>
         </tr>"""
 
+    # ── 리밸런싱 섹션 ─────────────────────────────────────────
     if signals:
         alert_bg = "#fff7ed"
         alert_border = "#f59e0b"
@@ -208,48 +324,116 @@ def build_html(evaluated, weights, grand_total, signals, config, date_str, usdkr
         alert_bg = "#f0fdf4"
         alert_border = "#16a34a"
         alert_title = "✅ 리밸런싱 불필요"
-        alert_items = "<li style='padding:5px 0;'>코어·위성 모두 밴드(20~40%) 내 정상 유지 중</li>"
+        alert_items = "<li style='padding:5px 0;'>나스닥 · 모멘텀 · SCHD · 비트코인 · 금 모두 밴드 내 정상 유지 중</li>"
+
+    # ── 종목 상세 ────────────────────────────────────────────
+    # 컬럼: 종목명(ticker) | 티커 | 섹터 | 등락률 | 금액
+    def _position_row(p, sector=""):
+        val = p.get("value")
+        val_str = fmt_krw(val) if val is not None else "⚠️ 오류"
+        ticker_str = p.get("ticker") or ""
+        ticker_display = ticker_str.replace(".KS", "") if ticker_str.endswith(".KS") else ticker_str
+        usd_amt = p.get("usd")
+        change_pct = p.get("change_pct")
+
+        # USD 외화예수금 금액 표시 (detail_str 대신 val_str 사용, 별도 처리 불필요)
+        if usd_amt is not None and not ticker_str:
+            sign = "-" if usd_amt < 0 else ""
+            extra = f" <span style='font-size:10px;color:#94a3b8;'>({sign}${abs(usd_amt):,.0f})</span>"
+        else:
+            extra = ""
+
+        return (
+            f"<tr style='border-bottom:1px solid #f8fafc;'>"
+            f"<td style='padding:6px 10px;font-size:12px;'>{p['name']}{extra}</td>"
+            f"<td style='padding:6px 10px;font-size:10px;color:#94a3b8;white-space:nowrap;text-align:right;font-family:monospace;'>{ticker_display}</td>"
+            f"<td style='padding:6px 10px;font-size:10px;color:#64748b;white-space:nowrap;text-align:right;'>{sector}</td>"
+            f"<td style='padding:6px 10px;text-align:right;font-size:11px;white-space:nowrap;font-family:monospace;'>{_change_html(change_pct)}</td>"
+            f"<td style='padding:6px 10px;text-align:right;font-size:12px;font-family:monospace;white-space:nowrap;'>{val_str}</td>"
+            f"</tr>"
+        )
+
+    def _subtotal_row(sector, sector_total, grand_total):
+        pct = sector_total / grand_total * 100 if grand_total else 0
+        return (
+            f"<tr style='background:#f8fafc;border-top:1px solid #e2e8f0;border-bottom:2px solid #e2e8f0;'>"
+            f"<td colspan='3' style='padding:4px 10px 4px 18px;font-size:10px;color:#475569;font-weight:600;'>"
+            f"{sector} 소계</td>"
+            f"<td style='padding:4px 10px;'></td>"
+            f"<td style='padding:4px 10px;text-align:right;font-size:11px;font-weight:700;font-family:monospace;white-space:nowrap;color:#334155;'>"
+            f"{fmt_krw(sector_total)} <span style='font-weight:400;color:#94a3b8;font-size:10px;'>({pct:.1f}%)</span></td>"
+            f"</tr>"
+        )
 
     detail_blocks = ""
     for cat, label in CAT_LABELS.items():
         if cat not in evaluated:
             continue
         positions = evaluated[cat]["positions"]
+
+        tickered = [p for p in positions if p.get("ticker")]
+        non_tickered = [p for p in positions if not p.get("ticker")]
+
+        sector_groups: dict = {}
+        for p in tickered:
+            s = SECTOR_MAP.get(p["ticker"], "기타")
+            sector_groups.setdefault(s, []).append(p)
+
+        for s in sector_groups:
+            sector_groups[s].sort(key=lambda p: p.get("value") or 0, reverse=True)
+
+        sorted_sectors = sorted(
+            sector_groups.items(),
+            key=lambda x: sum(p.get("value") or 0 for p in x[1]),
+            reverse=True,
+        )
+
         rows = ""
-        for p in positions:
-            val = p.get("value")
-            val_str = fmt_krw(val) if val is not None else "⚠️ 오류"
-            ticker_str = p.get("ticker") or ""
-            rows += (
-                f"<tr style='border-bottom:1px solid #f8fafc;'>"
-                f"<td style='padding:5px 10px;font-size:12px;'>{p['name']}</td>"
-                f"<td style='padding:5px 10px;font-size:10px;color:#94a3b8;'>{ticker_str}</td>"
-                f"<td style='padding:5px 10px;text-align:right;font-size:12px;font-family:monospace;'>{val_str}</td>"
-                f"</tr>"
-            )
+        for sector, ps in sorted_sectors:
+            for p in ps:
+                rows += _position_row(p, sector)
+            sector_total = sum(p.get("value") or 0 for p in ps)
+            rows += _subtotal_row(sector, sector_total, grand_total)
+
+        # 수동 현금 항목 (usd/krw)은 금액 순 정렬, 섹터 없음
+        for p in sorted(non_tickered, key=lambda p: p.get("value") or 0, reverse=True):
+            rows += _position_row(p, "")
+
         detail_blocks += f"""
-        <div style="padding:10px 20px 2px;">
-          <div style="font-size:11px;font-weight:700;color:#475569;">#{label}</div>
-        </div>
-        <table style="width:100%;border-collapse:collapse;"><tbody>{rows}</tbody></table>"""
+        <div style="border-top:2px solid #d9ff00;margin-top:4px;">
+          <div style="padding:8px 20px 2px;">
+            <div style="font-size:11px;font-weight:700;color:#475569;">#{label}</div>
+          </div>
+          <table style="width:100%;border-collapse:collapse;"><tbody>{rows}</tbody></table>
+          <div style="border-bottom:2px solid #d9ff00;"></div>
+        </div>"""
+
+    _neon = '<div style="border-top:2px solid #d9ff00;"></div>'
+    detail_blocks = _neon + detail_blocks + _neon
 
     usdkrw_str = f"USD/KRW {usdkrw:,.0f}" if usdkrw else ""
 
-    return f"""<!DOCTYPE html>
+    html = f"""<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="margin:0;padding:12px;background:#f1f5f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#1e293b;">
   <div style="max-width:680px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.1);">
 
     <div style="background:#0f172a;padding:18px 20px;">
-      <div style="color:#94a3b8;font-size:10px;letter-spacing:.1em;text-transform:uppercase;">Portfolio Briefing · 코어-위성-바벨</div>
+      <div style="color:#94a3b8;font-size:10px;letter-spacing:.1em;text-transform:uppercase;">Portfolio Briefing · 나스닥35·모멘텀40·SCHD10·BTC5·금10</div>
       <div style="color:#fff;font-size:15px;font-weight:700;margin-top:2px;">{date_str}</div>
       <div style="color:#60a5fa;font-size:22px;font-weight:800;margin-top:4px;">{fmt_krw(grand_total)}</div>
       <div style="color:#475569;font-size:10px;margin-top:2px;">{usdkrw_str}</div>
     </div>
 
+    <!-- 주요 지수 -->
+    <table style="width:100%;border-collapse:collapse;background:#f8fafc;border-bottom:2px solid #e2e8f0;">
+      <tr>{index_cells}</tr>
+    </table>
+
+    <!-- 전략 요약 -->
     <div style="overflow-x:auto;">
-    <table style="width:100%;border-collapse:collapse;min-width:480px;">
+    <table style="width:100%;border-collapse:collapse;min-width:360px;">
       <thead>
         <tr style="background:#f8fafc;">
           <th style="padding:8px 12px;text-align:left;font-size:10px;color:#94a3b8;font-weight:500;">전략</th>
@@ -264,19 +448,22 @@ def build_html(evaluated, weights, grand_total, signals, config, date_str, usdkr
     </table>
     </div>
 
+    <!-- 리밸런싱 -->
     <div style="margin:12px 16px;padding:14px 16px;background:{alert_bg};border-left:4px solid {alert_border};border-radius:4px;">
       <div style="font-size:13px;font-weight:700;margin-bottom:8px;">{alert_title}</div>
       <ul style="margin:0;padding-left:18px;font-size:12px;line-height:1.7;color:#374151;">{alert_items}</ul>
     </div>
 
+    <!-- 종목 상세 (색상 범례 포함) -->
     <div style="border-top:1px solid #e2e8f0;">{detail_blocks}</div>
 
     <div style="background:#f8fafc;padding:10px 20px;border-top:1px solid #e2e8f0;text-align:center;font-size:10px;color:#94a3b8;">
-      본 브리핑은 투자 조언이 아닙니다 · 종목 변경 시 config/portfolio.yaml 업데이트 · {date_str}
+      본 브리핑은 투자 조언이 아닙니다 · {usdkrw_str} 적용 · {date_str}
     </div>
   </div>
 </body>
 </html>"""
+    return html
 
 
 def send_email(subject, html, recipient, sender, password):
@@ -300,7 +487,7 @@ def main():
     date_str = f"{now.strftime('%Y년 %m월 %d일')} ({day_ko.get(now.strftime('%A'), '')})"
 
     print(f"\n{'='*55}")
-    print(f" \U0001f4ca Portfolio Briefing  {date_str}")
+    print(f" 📊 Portfolio Briefing  {date_str}")
     print(f"{'='*55}\n")
 
     evaluated, usdkrw = evaluate_holdings(config)
@@ -327,8 +514,15 @@ def main():
     else:
         print("\n  ✅ 리밸런싱 불필요")
 
-    html = build_html(evaluated, weights, grand_total, signals, config, date_str, usdkrw)
-    subject = f"\U0001f4ca 포트폴리오 {'⚠️ 리밸런싱' if signals else '✅ 정상'} — {date_str}"
+    print("\n  주요 지수 수집 중...")
+    indices = fetch_indices()
+    for idx in indices:
+        ch = idx["change_pct"]
+        ch_str = f"{ch:+.2f}%" if ch is not None else "N/A"
+        print(f"    {idx['name']}: {ch_str}")
+
+    html = build_html(evaluated, weights, grand_total, signals, config, date_str, usdkrw, indices)
+    subject = f"📊 포트폴리오 {'⚠️ 리밸런싱' if signals else '✅ 정상'} — {date_str}"
 
     sender = os.environ["GMAIL_USER"]
     password = os.environ["GMAIL_APP_PASSWORD"]
