@@ -176,53 +176,61 @@ def _change_html(v):
 
 
 CAT_LABELS = {
-    "core":             "코어 · S&P500",
+    "core":             "코어 · 나스닥100",
     "growth_satellite": "성장위성 · 모멘텀",
-    "safe_satellite":   "안전위성 · 단기채·현금",
+    "safe_satellite":   "방어위성 · 단기채·현금",
+    "bitcoin":          "비트코인",
+    "gold":             "금",
 }
 
 CAT_PRIMARY = {
     "core":             "#3b82f6",
     "growth_satellite": "#22c55e",
     "safe_satellite":   "#8b5cf6",
+    "bitcoin":          "#f97316",
+    "gold":             "#eab308",
 }
 
 CAT_SHADES = {
     "core":             ["#3b82f6", "#2563eb", "#1d4ed8", "#1e40af"],
     "growth_satellite": ["#22c55e", "#16a34a", "#15803d", "#166534"],
     "safe_satellite":   ["#8b5cf6", "#7c3aed", "#6d28d9", "#5b21b6"],
+    "bitcoin":          ["#f97316", "#ea580c", "#c2410c", "#9a3412"],
+    "gold":             ["#eab308", "#ca8a04", "#a16207", "#854d0e"],
 }
 
 SECTOR_MAP = {
-    # Core — 현재 나스닥100, 다음주 TIGER S&P500(360750.KS)으로 전환 예정
+    # Core
     "133690.KS": "나스닥100 ETF",
-    "QQQM":      "나스닥100 ETF",
-    "360750.KS": "S&P500 ETF",    # TIGER 미국S&P500 — 편입 예정
-    # Growth Satellite — 메모리반도체
+    "360750.KS": "S&P500 ETF",
+    # Growth — 메모리반도체
     "005930.KS": "메모리반도체",
     "000660.KS": "메모리반도체",
     "0177N0.KS": "메모리반도체",
-    # Growth Satellite — 종합반도체
+    # Growth — 종합반도체
     "INTC":      "종합반도체",
-    # Growth Satellite — 반도체장비
+    "MXL":       "종합반도체",
+    # Growth — 반도체장비
     "KLAC":      "반도체장비",
     "LRCX":      "반도체장비",
     "ASML":      "반도체장비",
     "TER":       "반도체장비",
-    # Growth Satellite — 반도체패키징
+    # Growth — 반도체패키징
     "AMKR":      "반도체패키징",
-    # Growth Satellite — 광학
-    "MXL":       "광학",
+    # Growth — 네트워킹반도체
+    "MRVL":      "네트워킹반도체",
+    "CRDO":      "네트워킹반도체",
+    # Growth — 데이터센터인프라
+    "VRT":       "데이터센터인프라",
+    "ALAB":      "데이터센터인프라",
+    # Growth — AI클라우드
+    "NBIS":      "AI클라우드",
+    # Growth — 광학
     "LITE":      "광학",
     "GLW":       "광학",
-    # Growth Satellite — 데이터센터
-    "VRT":       "데이터센터인프라",
-    "CRDO":      "데이터센터인프라",
-    # Growth Satellite — ETF
-    "0142D0.KS": "AI데이터센터 ETF",
-    # Safe Satellite
-    "458730.KS": "배당 ETF",
+    # Safe
     "SGOV":      "단기국채",
+    "458730.KS": "배당 ETF",
 }
 
 
@@ -312,7 +320,7 @@ def build_html(evaluated, weights, grand_total, signals, config, date_str, usdkr
         alert_bg = "#f0fdf4"
         alert_border = "#16a34a"
         alert_title = "✅ 리밸런싱 불필요"
-        alert_items = "<li style='padding:5px 0;'>코어 · 성장위성 · 안전위성 모두 밴드 내 정상 유지 중</li>"
+        alert_items = "<li style='padding:5px 0;'>나스닥 · 모멘텀 · 단기채 · 비트코인 · 금 모두 밴드 내 정상 유지 중</li>"
 
     # ── 종목 상세 ────────────────────────────────────────────
     # 컬럼: 종목명(ticker) | 티커 | 섹터 | 등락률 | 금액
@@ -408,7 +416,7 @@ def build_html(evaluated, weights, grand_total, signals, config, date_str, usdkr
   <div style="max-width:680px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.1);">
 
     <div style="background:#0f172a;padding:18px 20px;">
-      <div style="color:#94a3b8;font-size:10px;letter-spacing:.1em;text-transform:uppercase;">Portfolio Briefing · 코어(S&P500)-성장위성-안전위성</div>
+      <div style="color:#94a3b8;font-size:10px;letter-spacing:.1em;text-transform:uppercase;">Portfolio Briefing · 나스닥35·모멘텀35·단기채15·BTC5·금10</div>
       <div style="color:#fff;font-size:15px;font-weight:700;margin-top:2px;">{date_str}</div>
       <div style="color:#60a5fa;font-size:22px;font-weight:800;margin-top:4px;">{fmt_krw(grand_total)}</div>
       <div style="color:#475569;font-size:10px;margin-top:2px;">{usdkrw_str}</div>
