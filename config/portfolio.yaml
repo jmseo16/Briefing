@@ -1,14 +1,14 @@
 strategy:
   targets:
     core: 0.35              # 나스닥100
-    growth_satellite: 0.35  # 모멘텀
-    safe_satellite: 0.15    # 단기채·현금
+    growth_satellite: 0.40  # 모멘텀 (삼성·하이닉스 + 6종목)
+    schd: 0.10              # SCHD 우량배당
     bitcoin: 0.05
     gold: 0.10
   rebalance_band:
     core: [0.25, 0.45]
-    growth_satellite: [0.25, 0.45]
-    safe_satellite: [0.05, 0.25]
+    growth_satellite: [0.30, 0.50]
+    schd: [0.05, 0.15]
     bitcoin: [0.00, 0.10]
     gold: [0.00, 0.20]
 
@@ -56,10 +56,15 @@ holdings:
       shares: 383
       name: KODEX 삼전하이닉스혼합
 
-  safe_satellite:
-    - krw: 40484563          # USD 외화예수금 (KRW 환산)
+  schd:
+    - ticker: "SCHD"
+      shares: 0              # 매수 예정
+      name: SCHD 우량배당
+
+  safe_satellite:            # 대기 현금 (모멘텀·SCHD·BTC·금 편입 후 소멸 예정)
+    - krw: 40484563
       name: USD 외화예수금
-    - krw: 9379470           # 각 계좌 현금잔고 합산 (수동 업데이트)
+    - krw: 9379470
       name: 기타 현금
 
   bitcoin: []                # BTC 편입 예정
