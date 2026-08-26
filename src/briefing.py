@@ -178,7 +178,8 @@ def _change_html(v):
 CAT_LABELS = {
     "core":             "코어 · 나스닥100",
     "growth_satellite": "성장위성 · 모멘텀",
-    "safe_satellite":   "방어위성 · 단기채·현금",
+    "schd":             "SCHD · 우량배당",
+    "safe_satellite":   "대기현금",
     "bitcoin":          "비트코인",
     "gold":             "금",
 }
@@ -186,6 +187,7 @@ CAT_LABELS = {
 CAT_PRIMARY = {
     "core":             "#3b82f6",
     "growth_satellite": "#22c55e",
+    "schd":             "#14b8a6",
     "safe_satellite":   "#8b5cf6",
     "bitcoin":          "#f97316",
     "gold":             "#eab308",
@@ -194,6 +196,7 @@ CAT_PRIMARY = {
 CAT_SHADES = {
     "core":             ["#3b82f6", "#2563eb", "#1d4ed8", "#1e40af"],
     "growth_satellite": ["#22c55e", "#16a34a", "#15803d", "#166534"],
+    "schd":             ["#14b8a6", "#0d9488", "#0f766e", "#115e59"],
     "safe_satellite":   ["#8b5cf6", "#7c3aed", "#6d28d9", "#5b21b6"],
     "bitcoin":          ["#f97316", "#ea580c", "#c2410c", "#9a3412"],
     "gold":             ["#eab308", "#ca8a04", "#a16207", "#854d0e"],
@@ -416,7 +419,7 @@ def build_html(evaluated, weights, grand_total, signals, config, date_str, usdkr
   <div style="max-width:680px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.1);">
 
     <div style="background:#0f172a;padding:18px 20px;">
-      <div style="color:#94a3b8;font-size:10px;letter-spacing:.1em;text-transform:uppercase;">Portfolio Briefing · 나스닥35·모멘텀35·단기채15·BTC5·금10</div>
+      <div style="color:#94a3b8;font-size:10px;letter-spacing:.1em;text-transform:uppercase;">Portfolio Briefing · 나스닥35·모멘텀40·SCHD10·BTC5·금10</div>
       <div style="color:#fff;font-size:15px;font-weight:700;margin-top:2px;">{date_str}</div>
       <div style="color:#60a5fa;font-size:22px;font-weight:800;margin-top:4px;">{fmt_krw(grand_total)}</div>
       <div style="color:#475569;font-size:10px;margin-top:2px;">{usdkrw_str}</div>
