@@ -324,7 +324,7 @@ def build_html(evaluated, weights, grand_total, signals, config, date_str, usdkr
         alert_bg = "#f0fdf4"
         alert_border = "#16a34a"
         alert_title = "✅ 리밸런싱 불필요"
-        alert_items = "<li style='padding:5px 0;'>나스닥 · 모멘텀 · SCHD · 비트코인 · 금 모두 밴드 내 정상 유지 중</li>"
+        alert_items = "<li style='padding:5px 0;'>나스닥 · 모멘텀 · SCHD · 비트코인 · 금 · 대기현금 모두 밴드 내 정상 유지 중</li>"
 
     # ── 종목 상세 ────────────────────────────────────────────
     # 컬럼: 종목명(ticker) | 티커 | 섹터 | 등락률 | 금액
@@ -420,7 +420,7 @@ def build_html(evaluated, weights, grand_total, signals, config, date_str, usdkr
   <div style="max-width:680px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.1);">
 
     <div style="background:#0f172a;padding:18px 20px;">
-      <div style="color:#94a3b8;font-size:10px;letter-spacing:.1em;text-transform:uppercase;">Portfolio Briefing · 나스닥35·모멘텀40·SCHD10·BTC5·금10</div>
+      <div style="color:#94a3b8;font-size:10px;letter-spacing:.1em;text-transform:uppercase;">Portfolio Briefing · 나스닥35·모멘텀30·SCHD10·BTC5·금10·현금10</div>
       <div style="color:#fff;font-size:15px;font-weight:700;margin-top:2px;">{date_str}</div>
       <div style="color:#60a5fa;font-size:22px;font-weight:800;margin-top:4px;">{fmt_krw(grand_total)}</div>
       <div style="color:#475569;font-size:10px;margin-top:2px;">{usdkrw_str}</div>

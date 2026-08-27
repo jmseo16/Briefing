@@ -1,16 +1,18 @@
 strategy:
   targets:
     core: 0.35              # 나스닥100
-    growth_satellite: 0.40  # 모멘텀 (삼성·하이닉스 + 6종목)
+    growth_satellite: 0.30  # 모멘텀 (삼성·하이닉스 + 6종목)
     schd: 0.10              # SCHD 우량배당
     bitcoin: 0.05
     gold: 0.10
+    safe_satellite: 0.10    # 대기 현금 (편입 전 임시)
   rebalance_band:
     core: [0.25, 0.45]
-    growth_satellite: [0.30, 0.50]
+    growth_satellite: [0.20, 0.40]
     schd: [0.05, 0.15]
     bitcoin: [0.00, 0.10]
     gold: [0.00, 0.20]
+    safe_satellite: [0.05, 0.15]
 
 holdings:
   core:
