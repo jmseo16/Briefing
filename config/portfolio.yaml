@@ -4,7 +4,7 @@ strategy:
     growth_satellite: 0.30  # 모멘텀 (전술적 20%까지 축소 예정)
     bitcoin: 0.05
     gold: 0.10
-    bonds: 0.20             # 단기채 SGOV (전술적 30%까지 확대 예정)
+    bonds: 0.20             # 단기채/현금 (전술적 30%까지 확대 예정)
   rebalance_band:
     core: [0.25, 0.45]
     growth_satellite: [0.20, 0.40]
@@ -41,21 +41,19 @@ holdings:
       shares: 383
       name: KODEX 삼전하이닉스혼합
 
-  bonds:
+  bonds:                     # 단기채 + 현금 통합
     - ticker: "SGOV"
       shares: 628
       name: iShares 단기국채 ETF
-
-  bitcoin:
-    - krw: 15146132
-      name: 비트코인 (빗썸)
-
-  gold: []                   # 금 ETF 편입 예정
-
-  safe_satellite:            # 기타/대기 현금
     - krw: 30053100
       name: 국민성장펀드
     - krw: 29747580
       name: 종합계좌 예수금
     - krw: 7572578
       name: BTC 거래소 원화 (빗썸)
+
+  bitcoin:
+    - krw: 15146132
+      name: 비트코인 (빗썸)
+
+  gold: []                   # 금 ETF 편입 예정
