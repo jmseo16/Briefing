@@ -202,10 +202,9 @@ def _change_html(v):
 CAT_LABELS = {
     "core":             "코어 · 나스닥100",
     "growth_satellite": "성장위성 · 모멘텀",
-    "bonds":            "단기채 · SGOV",
+    "bonds":            "단기채/현금",
     "bitcoin":          "비트코인",
     "gold":             "금",
-    "safe_satellite":   "기타/대기",
 }
 
 CAT_PRIMARY = {
@@ -214,7 +213,6 @@ CAT_PRIMARY = {
     "bonds":            "#14b8a6",
     "bitcoin":          "#f97316",
     "gold":             "#eab308",
-    "safe_satellite":   "#94a3b8",
 }
 
 CAT_SHADES = {
@@ -223,7 +221,6 @@ CAT_SHADES = {
     "bonds":            ["#14b8a6", "#0d9488", "#0f766e", "#115e59"],
     "bitcoin":          ["#f97316", "#ea580c", "#c2410c", "#9a3412"],
     "gold":             ["#eab308", "#ca8a04", "#a16207", "#854d0e"],
-    "safe_satellite":   ["#94a3b8", "#64748b", "#475569", "#334155"],
 }
 
 SECTOR_MAP = {
@@ -389,7 +386,7 @@ def build_html(evaluated, weights, grand_total, signals, config, date_str, usdkr
         alert_bg = "#f0fdf4"
         alert_border = "#16a34a"
         alert_title = "✅ 리밸런싱 불필요"
-        alert_items = "<li style='padding:5px 0;'>나스닥 · 모멘텀 · 단기채 · 비트코인 · 금 모두 밴드 내 정상 유지 중</li>"
+        alert_items = "<li style='padding:5px 0;'>나스닥 · 모멘텀 · 단기채/현금 · 비트코인 · 금 모두 밴드 내 정상 유지 중</li>"
 
     # ── 종목 상세 ────────────────────────────────────────────
     def _position_row(p, sector=""):
