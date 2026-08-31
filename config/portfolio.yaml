@@ -45,15 +45,13 @@ holdings:
     - ticker: "SGOV"
       shares: 628
       name: iShares 단기국채 ETF
-    - krw: 30053100
-      name: 국민성장펀드
     - krw: 29747580
       name: 종합계좌 예수금
     - krw: 7572578
       name: BTC 거래소 원화 (빗썸)
 
   bitcoin:
-    - krw: 15146132
+    - krw: 7573554
       name: 비트코인 (빗썸)
 
   gold: []                   # 금 ETF 편입 예정
