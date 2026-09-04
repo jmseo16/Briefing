@@ -15,7 +15,7 @@ strategy:
 holdings:
   core:
     - ticker: "133690.KS"   # TIGER 미국나스닥100
-      shares: 696            # 61(IRP) + 635(연금저축) — 연금저축회사 214주 매도
+      shares: 696            # 61(IRP) + 635(연금저축)
       name: TIGER 나스닥100
 
   growth_satellite:
@@ -41,13 +41,21 @@ holdings:
       name: iShares 단기국채 ETF
     - krw: 38245201
       name: 연금저축(회사) 예수금
-    - krw: 34703573
-      name: USD 외화예수금 (종합)
-    - krw: 7572578
+    - krw: 14168304
+      name: 금현물계좌 예수금
+    - krw: 150105
+      name: 연금저축 예수금
+    - krw: 39523
+      name: ISA 예수금
+    - krw: 89758
+      name: IRP 단기상품
+    - krw: 2
       name: BTC 거래소 원화 (빗썸)
 
   bitcoin:
-    - krw: 7538323
+    - krw: 15275437
       name: 비트코인 (빗썸)
 
-  gold: []                   # 금 ETF 편입 예정
+  gold:
+    - krw: 14109840
+      name: 금현물 1kg (삼성증권)
