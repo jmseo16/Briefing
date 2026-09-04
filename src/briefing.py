@@ -359,7 +359,7 @@ def build_html(evaluated, weights, grand_total, signals, config, date_str, usdkr
           </td>
           <td style="padding:10px 12px;text-align:right;font-size:16px;font-weight:800;">{w*100:.1f}%</td>
           <td style="padding:10px 12px;text-align:right;font-size:12px;color:#64748b;">{tgt*100:.0f}%</td>
-          <td style="padding:10px 12px;text-align:right;font-size:13px;font-weight:600;color:{diff_color};">{diff*100:+.1f}%p</td>
+          <td style="padding:10px 12px;text-align:right;font-size:13px;font-weight:600;color:{diff_color};">{"+" if diff >= 0 else "−"}{fmt_krw(abs(diff * grand_total))}</td>
           <td style="padding:10px 12px;text-align:right;font-size:12px;font-family:monospace;white-space:nowrap;">{fmt_krw(val)}</td>
           <td style="padding:10px 12px;text-align:center;font-size:12px;color:{badge_color};white-space:nowrap;">{badge}</td>
         </tr>"""
