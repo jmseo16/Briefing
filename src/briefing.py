@@ -178,7 +178,8 @@ def _change_html(v):
 CAT_LABELS = {
     "core":             "코어 · 나스닥100",
     "growth_satellite": "성장위성 · 모멘텀",
-    "safe_satellite":   "방어위성 · 단기채·현금",
+    "schd":             "SCHD · 우량배당",
+    "safe_satellite":   "방어위성 · 대기현금",
     "bitcoin":          "비트코인",
     "gold":             "금",
 }
@@ -186,6 +187,7 @@ CAT_LABELS = {
 CAT_PRIMARY = {
     "core":             "#3b82f6",
     "growth_satellite": "#22c55e",
+    "schd":             "#06b6d4",
     "safe_satellite":   "#8b5cf6",
     "bitcoin":          "#f97316",
     "gold":             "#eab308",
