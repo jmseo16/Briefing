@@ -12,6 +12,9 @@ strategy:
     gold: [0.00, 0.20]
     bonds: [0.10, 0.35]
 
+# 국민성장펀드(삼성국민참여형국민성장 사모재간접-C1, 30,009,900원)는
+# 사용자 지침에 따라 총계에서 제외 — 아래 어디에도 포함하지 않음.
+
 holdings:
   core:
     - ticker: "133690.KS"   # TIGER 미국나스닥100
@@ -20,16 +23,19 @@ holdings:
 
   growth_satellite:
     - ticker: "005930.KS"
-      shares: 222            # 218(종합) + 4(ISA)
+      shares: 218            # 218(종합) — ISA 4주 매도
       name: 삼성전자
-    - ticker: "000660.KS"
-      shares: 20             # 20(ISA)
-      name: SK하이닉스
     - ticker: "NVDA"
-      shares: 99
+      shares: 47             # 99 → 47주 (52주 매도)
       name: 엔비디아
+    - ticker: "QCOM"
+      shares: 46             # 신규
+      name: 퀄컴
+    - ticker: "GLW"
+      shares: 43             # 신규
+      name: 코닝
     - ticker: "TSM"
-      shares: 33
+      shares: 25             # 33 → 25주 (8주 매도)
       name: TSMC ADR
     - ticker: "0177N0.KS"   # KODEX 삼성전자SK하이닉스채권혼합50
       shares: 383
@@ -37,25 +43,38 @@ holdings:
 
   bonds:                     # 단기채 + 현금 통합
     - ticker: "SGOV"
-      shares: 628
+      shares: 726            # 628 → 726주 (98주 증량)
       name: iShares 단기국채 ETF
-    - krw: 38245201
-      name: 연금저축(회사) 예수금
-    - krw: 14168304
-      name: 금현물계좌 예수금
+    - ticker: "329750.KS"   # TIGER 미국달러단기채권액티브
+      shares: 5677           # 2,931(연금저축회사) + 2,746(ISA)
+      name: TIGER 미국달러단기채권
+    - krw: 14228064
+      name: 종합계좌 예수금
+    - krw: -13533330
+      name: USD 외화예수금 (마이너스 잔고)
     - krw: 150105
       name: 연금저축 예수금
-    - krw: 39523
+    - krw: 135194
       name: ISA 예수금
-    - krw: 89758
+    - krw: 98651
       name: IRP 단기상품
+    - krw: 82702
+      name: 금현물계좌 예수금
+    - krw: 27700
+      name: IRP 디폴트옵션 중립형
+    - krw: 15343
+      name: 종합(국민성장전용) 예수금
+    - krw: 8698
+      name: 연금저축(회사) 예수금
+    - krw: 7
+      name: IRP 예수금
     - krw: 2
       name: BTC 거래소 원화 (빗썸)
 
   bitcoin:
-    - krw: 15275437
+    - krw: 15275437          # 09/04 기준 — 최신 빗썸 화면 미제공으로 미갱신
       name: 비트코인 (빗썸)
 
   gold:
-    - krw: 14109840
+    - krw: 13561100          # 금 99.99 1kg
       name: 금현물 1kg (삼성증권)

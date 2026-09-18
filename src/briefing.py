@@ -235,6 +235,8 @@ SECTOR_MAP = {
     "NVDA":      "AI GPU",
     # Growth — 반도체 파운드리
     "TSM":       "반도체 파운드리",
+    # Growth — 통신반도체
+    "QCOM":      "통신반도체",
     # Growth — 종합반도체
     "INTC":      "종합반도체",
     "MXL":       "종합반도체",
@@ -258,6 +260,7 @@ SECTOR_MAP = {
     "GLW":       "광학",
     # Bonds
     "SGOV":      "단기국채",
+    "329750.KS": "달러단기채",
     # 배당
     "458730.KS": "배당 ETF",
     "SCHD":      "배당 ETF",
