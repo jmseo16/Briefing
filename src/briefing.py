@@ -482,7 +482,7 @@ def build_html(evaluated, weights, grand_total, signals, config, date_str, usdkr
   <div style="max-width:680px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.1);">
 
     <div style="background:#0f172a;padding:18px 20px;">
-      <div style="color:#94a3b8;font-size:10px;letter-spacing:.1em;text-transform:uppercase;">Portfolio Briefing · 나스닥35·모멘텀30·BTC5·금10·단기채20</div>
+      <div style="color:#94a3b8;font-size:10px;letter-spacing:.1em;text-transform:uppercase;">Portfolio Briefing · 나스닥35·모멘텀30·BTC5·금5·단기채25</div>
       <div style="color:#fff;font-size:15px;font-weight:700;margin-top:2px;">{date_str}</div>
       <div style="color:#60a5fa;font-size:22px;font-weight:800;margin-top:4px;">{fmt_krw(grand_total)}</div>
       <div style="color:#475569;font-size:10px;margin-top:2px;">{usdkrw_str}</div>

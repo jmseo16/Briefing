@@ -3,8 +3,8 @@ strategy:
     core: 0.35              # 나스닥100
     growth_satellite: 0.30  # 모멘텀 (전술적 20%까지 축소 예정)
     bitcoin: 0.05
-    gold: 0.10
-    bonds: 0.20             # 단기채/현금 (전술적 30%까지 확대 예정)
+    gold: 0.05
+    bonds: 0.25             # 단기채/현금
   rebalance_band:
     core: [0.25, 0.45]
     growth_satellite: [0.20, 0.40]
